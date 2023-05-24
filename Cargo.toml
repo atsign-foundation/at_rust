@@ -1,0 +1,13 @@
+[package]
+name = "at_rust"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+serde_json = "1.0.96"
+rustls = "0.21.1"
+webpki = "0.22.0"
+webpki-roots = "0.23.0"
+native-tls = "0.2.11"
