@@ -1,5 +1,6 @@
 use at_rust::at_client::AtClient;
 use at_rust::at_secrets::AtSecrets;
+use at_rust::at_sign::AtSign;
 use std::fs::File;
 use std::io::Read;
 use std::{env, println};
@@ -17,6 +18,9 @@ fn main() {
     println!("Creating AtSecrets");
     let secrets = AtSecrets::from_data(&contents);
 
-    let at_client = AtClient::init(secrets, "aliens12".to_owned());
-    at_client.lookup();
+    let mut at_client =
+        AtClient::init(secrets, AtSign::new("aliens12".to_owned())).expect("Failed to init");
+    at_client
+        .authenticate_with_at_server()
+        .expect("Failed to authenticate with at server");
 }
