@@ -4,6 +4,7 @@ mod prelude {
     pub use crate::at_error::Result;
     pub use crate::at_sign::AtSign;
     pub use crate::at_tls_client::TLSClient;
+    pub use rsa::{RsaPrivateKey, RsaPublicKey};
 }
 
 use prelude::*;

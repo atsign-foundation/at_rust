@@ -16,7 +16,7 @@ fn main() {
     file.read_to_string(&mut contents).unwrap();
 
     println!("Creating AtSecrets");
-    let secrets = AtSecrets::from_data(&contents);
+    let secrets = AtSecrets::from_file(&contents);
 
     let mut at_client =
         AtClient::init(secrets, AtSign::new("aliens12".to_owned())).expect("Failed to init");

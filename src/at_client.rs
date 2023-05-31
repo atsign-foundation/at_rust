@@ -1,5 +1,3 @@
-use std::println;
-
 use crate::at_error::{AtError, Result};
 use crate::at_secrets::AtSecrets;
 use crate::at_server_addr::AtServerAddr;
@@ -32,8 +30,11 @@ impl AtClient {
     }
 
     pub fn authenticate_with_at_server(&mut self) -> Result<()> {
-        let res =
-            FromVerb::execute(&mut self.tls_client, FromVerbInputs::new(&self.at_sign)).unwrap();
+        let res = FromVerb::execute(
+            &mut self.tls_client,
+            FromVerbInputs::new(&self.at_sign, &self.secrets.aes_pkam_private_key),
+        )
+        .unwrap();
         println!("Challenge: {}", res);
         Ok(())
     }
