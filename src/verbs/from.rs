@@ -1,9 +1,12 @@
-use der::Encode;
+use rsa::pkcs8::DecodePrivateKey;
 use std::{format, println};
 
-use rsa::{pkcs1::DecodeRsaPrivateKey, pkcs8::DecodePrivateKey};
+use rsa::pkcs1v15::{SigningKey, VerifyingKey};
+use rsa::sha2::{Digest, Sha256};
+use rsa::signature::{Keypair, RandomizedSigner, SignatureEncoding, Verifier};
+use rsa::RsaPrivateKey;
 
-use crate::utils::encoding::decode_base64_text;
+use crate::utils::encoding::{construct_rsa_key, decode_base64_text, encode_base64_text};
 
 use super::{prelude::*, Verb};
 
@@ -28,10 +31,43 @@ impl<'a> Verb<'a> for FromVerb {
         tls_client.send(format!("from:{}\n", input.at_sign.get_at_sign()))?;
         let res = tls_client.read_line()?;
         println!("res: {:?}", res);
+
+        // Prepare data
+        let (_, data) = res.split_at(6);
+        // let data = String::from(
+        //     "_6e27e164-e45b-4ae1-8714-7545d36b6ed4@aliens12:9ef2ec2c-39d4-4e25-825e-0da05f6e0bb9",
+        // );
+        // println!("Challenge data string: {}", data);
+        // let data = sha256::digest(data);
+        // println!("Challenge data hash: {:?}", data);
+        // let data = hex::decode(data).expect("Invalid hex string");
+        // println!("Challenge data hash bytes: {:?}", data);
+
+        // Construct key
         let decoded_priv_key = decode_base64_text(&input.priv_pkam);
-        let rsa_key = RsaPrivateKey::from_pkcs8_der(&decoded_priv_key)
-            .expect("Unable to create RSA Private Key");
-        println!("rsa_key: {:?}", rsa_key);
+        let rsa_key = construct_rsa_key(&decoded_priv_key);
+        let mut rng = rand::thread_rng();
+        let signing_key = SigningKey::<Sha256>::new(rsa_key);
+        let verifying_key = signing_key.verifying_key();
+
+        // Sign
+        let signature = signing_key.sign_with_rng(&mut rng, &data.as_bytes());
+        verifying_key
+            .verify(&data.as_bytes(), &signature)
+            .expect("failed to verify");
+        let binding = signature.to_bytes();
+        let signature_bytes = binding.as_ref();
+        println!("signature bytes: {:?}", signature_bytes);
+
+        // Encode signature
+        let sha256_signature_encoded = encode_base64_text(&signature_bytes);
+        println!("signature encoded: {:?}", sha256_signature_encoded);
+
+        // Send signature
+        tls_client.send(format!("pkam:{}\n", sha256_signature_encoded))?;
+        let res = tls_client.read_line()?;
+        // println!("res: {:?}", res);
+
         Ok(res)
     }
 }

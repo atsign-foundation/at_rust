@@ -1,5 +1,3 @@
-use std::print;
-
 use crate::utils::encoding::*;
 use serde_json::{from_str, Value};
 
@@ -50,23 +48,21 @@ impl AtSecrets {
         // Decode the self encrypt key from base64
         let decoded_self_encrypted_key = decode_base64_text(&aes_self_encrypt_key);
 
-        println!("Decoded self encrypt key: {:?}", decoded_self_encrypted_key);
-
-        println!(
-            "Decoded self encrypt key: {:x?}",
-            decoded_self_encrypted_key
-        );
-
-        // Use the decoded key to generate the AES key
-        let mut cypher = generate_aes_key(&decoded_self_encrypted_key);
+        fn decrypt_private_key(key: &[u8], cypher_text: &str) -> String {
+            let mut cypher = construct_aes_key(key);
+            let decoded_string = decode_base64_text(&cypher_text);
+            decrypt_key(&mut cypher, &decoded_string)
+        }
 
         // Use the key to decrypt all the other private keys
-        let pkam_public_key = decrypt_private_key(&mut cypher, &aes_pkam_public_key);
-        let pkam_private_key = decrypt_private_key(&mut cypher, &aes_pkam_private_key);
-        let encrypt_public_key = decrypt_private_key(&mut cypher, &aes_encrypt_public_key);
-        let encrypt_private_key = decrypt_private_key(&mut cypher, &aes_encrypt_private_key);
-
-        println!("Decrypted and encoded pkam private key {}", pkam_public_key);
+        let pkam_public_key =
+            decrypt_private_key(&decoded_self_encrypted_key, &aes_pkam_public_key);
+        let pkam_private_key =
+            decrypt_private_key(&decoded_self_encrypted_key, &aes_pkam_private_key);
+        let encrypt_public_key =
+            decrypt_private_key(&decoded_self_encrypted_key, &aes_encrypt_public_key);
+        let encrypt_private_key =
+            decrypt_private_key(&decoded_self_encrypted_key, &aes_encrypt_private_key);
 
         println!("Keys decoded");
 
