@@ -1,3 +1,4 @@
+pub mod at_chops;
 pub mod at_client;
 pub mod at_error;
 pub mod at_secrets;

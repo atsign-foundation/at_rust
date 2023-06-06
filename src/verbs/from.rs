@@ -34,14 +34,6 @@ impl<'a> Verb<'a> for FromVerb {
 
         // Prepare data
         let (_, data) = res.split_at(6);
-        // let data = String::from(
-        //     "_6e27e164-e45b-4ae1-8714-7545d36b6ed4@aliens12:9ef2ec2c-39d4-4e25-825e-0da05f6e0bb9",
-        // );
-        // println!("Challenge data string: {}", data);
-        // let data = sha256::digest(data);
-        // println!("Challenge data hash: {:?}", data);
-        // let data = hex::decode(data).expect("Invalid hex string");
-        // println!("Challenge data hash bytes: {:?}", data);
 
         // Construct key
         let decoded_priv_key = decode_base64_text(&input.priv_pkam);
