@@ -1,12 +1,4 @@
-use rsa::pkcs8::DecodePrivateKey;
-use std::{format, println};
-
-use rsa::pkcs1v15::{SigningKey, VerifyingKey};
-use rsa::sha2::{Digest, Sha256};
-use rsa::signature::{Keypair, RandomizedSigner, SignatureEncoding, Verifier};
-use rsa::RsaPrivateKey;
-
-use crate::utils::encoding::{construct_rsa_key, decode_base64_text, encode_base64_text};
+use crate::at_chops::at_chops::sign_challenge;
 
 use super::{prelude::*, Verb};
 
@@ -29,37 +21,14 @@ impl<'a> Verb<'a> for FromVerb {
 
     fn execute(tls_client: &mut TLSClient, input: Self::Inputs) -> Result<Self::Result> {
         tls_client.send(format!("from:{}\n", input.at_sign.get_at_sign()))?;
-        let res = tls_client.read_line()?;
-        println!("res: {:?}", res);
+        let response = tls_client.read_line()?;
+        println!("response: {:?}", response);
 
-        // Prepare data
-        let (_, data) = res.split_at(6);
+        let signed_challenge = sign_challenge(&response, input.priv_pkam);
 
-        // Construct key
-        let decoded_priv_key = decode_base64_text(&input.priv_pkam);
-        let rsa_key = construct_rsa_key(&decoded_priv_key);
-        let mut rng = rand::thread_rng();
-        let signing_key = SigningKey::<Sha256>::new(rsa_key);
-        let verifying_key = signing_key.verifying_key();
+        tls_client.send(format!("pkam:{}\n", signed_challenge))?;
+        let response = tls_client.read_line()?;
 
-        // Sign
-        let signature = signing_key.sign_with_rng(&mut rng, &data.as_bytes());
-        verifying_key
-            .verify(&data.as_bytes(), &signature)
-            .expect("failed to verify");
-        let binding = signature.to_bytes();
-        let signature_bytes = binding.as_ref();
-        println!("signature bytes: {:?}", signature_bytes);
-
-        // Encode signature
-        let sha256_signature_encoded = encode_base64_text(&signature_bytes);
-        println!("signature encoded: {:?}", sha256_signature_encoded);
-
-        // Send signature
-        tls_client.send(format!("pkam:{}\n", sha256_signature_encoded))?;
-        let res = tls_client.read_line()?;
-        // println!("res: {:?}", res);
-
-        Ok(res)
+        Ok(response)
     }
 }
