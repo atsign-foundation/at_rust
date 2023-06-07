@@ -30,7 +30,7 @@ pub fn construct_aes_key(data: &[u8], iv: &[u8; 16]) -> Box<dyn SynchronousStrea
 
 /// Decrypt a private key using an AES key.
 pub fn decrypt_key(cypher: &mut Box<dyn SynchronousStreamCipher>, encrypted_key: &[u8]) -> String {
-    let mut output: Vec<u8> = Vec::with_capacity(encrypted_key.len());
+    let mut output: Vec<u8> = vec![0; encrypted_key.len()];
     cypher.process(&encrypted_key, &mut output);
 
     // NOTE: Due to the PKCS#7 type of encryption used (on the keys), the output will have padding
@@ -126,6 +126,16 @@ mod test {
 
         // Assert
         assert_eq!(output, SELF_ENCRYPTION_DECRYPT_RESULT);
+    }
+
+    #[test]
+    fn decrypt_key_test() {
+        let decoded_key = base64_decode(SELF_ENCRYPTION_KEY_ENCODED);
+        let iv: [u8; 16] = [0x00; 16];
+        let mut cipher = construct_aes_key(&decoded_key, &iv);
+        let decoded_pkam_key = base64_decode(PKAM_KEY_ENCRYPTED_AND_ENCODED);
+        let result = decrypt_key(&mut cipher, &decoded_pkam_key);
+        assert_eq!(result, PKAM_KEY_DECRYPTED_AND_ENCODED);
     }
 
     #[test]
