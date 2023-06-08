@@ -1,5 +1,6 @@
 use super::utils::{
-    base64_decode, construct_aes_key, construct_rsa_private_key, decrypt_key, rsa_sign,
+    base64_decode, base64_encode, construct_aes_key, construct_rsa_private_key,
+    construct_rsa_public_key, create_new_aes_key, decrypt_key, encrypt_with_public_key, rsa_sign,
 };
 
 /// Base64 decode the self encryption key.
@@ -26,6 +27,21 @@ pub fn sign_challenge(challenge: &str, decrypted_private_key: &str) -> String {
     rsa_sign(rsa_private_key, &data.as_bytes())
 }
 
+/// Cut a new symmetric key to be used when interacting with a new AtSign.
+pub fn create_new_shared_symmetric_key() -> String {
+    let key = create_new_aes_key();
+    base64_encode(&key)
+}
+
+/// Encrypt the symmetric key with with "our" public key.
+pub fn encrypt_symmetric_key(symmetric_key: &str, decrypted_public_key: &str) -> String {
+    let decoded_public_key = base64_decode(&decrypted_public_key);
+    let rsa_public_key = construct_rsa_public_key(&decoded_public_key);
+    let decoded_symmetric_key = base64_decode(&symmetric_key);
+    let encrypted_symmetric_key = encrypt_with_public_key(rsa_public_key, &decoded_symmetric_key);
+    encrypted_symmetric_key
+}
+
 #[cfg(test)]
 mod test {
 
@@ -47,6 +63,10 @@ mod test {
         "@data:_6e27e164-e45b-4ae1-8714-7545d36b6ed4@aliens12:9ef2ec2c-39d4-4e25-825e-0da05f6e0bb9";
     // Expected result of signing the challenge text
     const CHALLENGE_RESULT: &str = "aTY5Pxod1hzv/9uL9FSqxbmmCT73vFEBRv4qA+k+d6U5hcglzYvAl1MJNY2eQLTFLoFIkx/3pgm0YkjI4aS1hBAyBmMIinGrPGbOuR3PebPqITLhNWdeWZamHrlKY8tjvARtb4k0gb2LgauzhNq3zzm5aS7EU7OYaRy22/fR5fCWXw+ZyFdRYhA9qlFcA7ksct3pJwHSvSlQb2R7YuzN210Xfii43yAgtncz4CUZRcxPL7AD4mUg7dSMu0RMVKIQKsecwhNfh7bgy1zFDGMpOP8DQJ8tJfQiut5u+0yAGM4O31FJ+F7/1pvR0pgr7/O0/4K+BdhdRWNVine335u6lg==";
+    // Public encryption key base64 encoded and decrypted with self encryption key
+    const PUBLIC_ENCRYPTION_KEY: &str = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAgcEdJDDvEzAC92N0dKIvgGIh9ddJ4xccDm5QqdsdnaYXygzygjfWUzdKrEkrisQIQBRJwEQd50jths5Rg46f0fowOT2gg3OTpMo0GaQLQagZoYuMiUcsuho6ig3ahsdPq21vz1tTT92rbI+l7477tsG7y+w5jDbDF6kvKfLYs8Ga73Jbwm55yg3ibNJjsiLGa6bg+5Y9pxXxzggURKn+m5h77PDCgCiTd7zLb4L9vsRm6ijdpnuekVGIgqGZO6xUOEYOonmqDjlw8BQagu31Z5NlvhWoCQv1UUPaDOm34R2uUeWt1PWe/AUih02c3GdtIcUyqK8E1GkCHfhFD27CtwIDAQAB";
+    // Symmetric key that has been base64 encoded
+    const SYMMETRIC_KEY: &str = "84ttmDzh94OR7P6nCR/p98ZZwXkp40og8avLgX4R3fs=";
 
     #[test]
     fn decode_self_encryption_key_test() {
@@ -65,5 +85,18 @@ mod test {
     fn sign_challenge_test() {
         let result = sign_challenge(CHALLENGE_TEXT, &PKAM_KEY_DECRYPTED_AND_ENCODED);
         assert_eq!(result, CHALLENGE_RESULT);
+    }
+
+    #[test]
+    fn create_new_shared_symmetric_key_test() {
+        let result = create_new_shared_symmetric_key();
+        assert_eq!(result.len(), 44);
+    }
+
+    #[test]
+    fn encrypt_symmetric_key_test() {
+        let _ = encrypt_symmetric_key(&SYMMETRIC_KEY, &PUBLIC_ENCRYPTION_KEY);
+        // Assert it doesn't panic. This function uses randomness so we can't test the result
+        // without mocking the randomness.
     }
 }

@@ -3,6 +3,7 @@ use crate::at_secrets::AtSecrets;
 use crate::at_server_addr::AtServerAddr;
 use crate::at_sign::AtSign;
 use crate::at_tls_client::TLSClient;
+use crate::verbs::llookup::{LlookupVerb, LlookupVerbInputs};
 use crate::verbs::{from::FromVerb, from::FromVerbInputs, Verb};
 
 pub struct AtClient {
@@ -25,8 +26,18 @@ impl AtClient {
         })
     }
 
-    pub fn lookup(&mut self) {
-        println!("Connecting to at server");
+    pub fn send_data(&mut self, data: &str, receiver: AtSign) -> Result<()> {
+        self.authenticate_with_at_server()?;
+        let _ = LlookupVerb::execute(
+            &mut self.tls_client,
+            LlookupVerbInputs::new(
+                &self.at_sign,
+                &receiver,
+                "shared_key",
+                &self.secrets.aes_encrypt_public_key,
+            ),
+        )?;
+        Ok(())
     }
 
     pub fn authenticate_with_at_server(&mut self) -> Result<()> {
@@ -34,8 +45,8 @@ impl AtClient {
             &mut self.tls_client,
             FromVerbInputs::new(&self.at_sign, &self.secrets.aes_pkam_private_key),
         )
-        .unwrap();
-        println!("Challenge: {}", res);
+        .expect("Failed to authenticate with at server");
+        println!("Successfully authenticated with at server");
         Ok(())
     }
 }

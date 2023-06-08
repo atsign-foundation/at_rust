@@ -3,10 +3,10 @@ use crypto::{aes::KeySize, symmetriccipher::SynchronousStreamCipher};
 use base64::{engine::general_purpose, Engine as _};
 use rsa::{
     pkcs1v15::SigningKey,
-    pkcs8::DecodePrivateKey,
+    pkcs8::{DecodePrivateKey, DecodePublicKey},
     sha2::Sha256,
     signature::{Keypair, RandomizedSigner, SignatureEncoding, Verifier},
-    RsaPrivateKey,
+    Pkcs1v15Encrypt, RsaPrivateKey, RsaPublicKey,
 };
 
 /// Convert a base64 encoded string to a vector of bytes.
@@ -50,6 +50,12 @@ pub fn construct_rsa_private_key(data: &[u8]) -> RsaPrivateKey {
     rsa_key
 }
 
+pub fn construct_rsa_public_key(data: &[u8]) -> RsaPublicKey {
+    let rsa_key =
+        RsaPublicKey::from_public_key_der(&data).expect("Unable to create RSA Public Key");
+    rsa_key
+}
+
 /// Sign data using an RSA private key.
 /// This returns a base64 encoded string.
 pub fn rsa_sign(key: RsaPrivateKey, data: &[u8]) -> String {
@@ -64,12 +70,25 @@ pub fn rsa_sign(key: RsaPrivateKey, data: &[u8]) -> String {
         .expect("failed to verify");
     let binding = signature.to_bytes();
     let signature_bytes = binding.as_ref();
-    println!("signature bytes: {:?}", signature_bytes);
 
     // Encode signature
     let sha256_signature_encoded = base64_encode(&signature_bytes);
-    println!("signature encoded: {:?}", sha256_signature_encoded);
     sha256_signature_encoded
+}
+
+/// Create a new AES-256 key from scratch.
+pub fn create_new_aes_key() -> [u8; 32] {
+    let key: [u8; 32] = rand::random();
+    key
+}
+
+/// Encrypt some data using an RSA public key.
+pub fn encrypt_with_public_key(public_key: RsaPublicKey, data: &[u8]) -> String {
+    let mut rng = rand::thread_rng();
+    let encrypted_symmetric_key = public_key
+        .encrypt(&mut rng, Pkcs1v15Encrypt, data)
+        .expect("Failed to encrypt symmetric key");
+    base64_encode(&encrypted_symmetric_key)
 }
 
 #[cfg(test)]
@@ -97,6 +116,8 @@ mod test {
         "_6e27e164-e45b-4ae1-8714-7545d36b6ed4@aliens12:9ef2ec2c-39d4-4e25-825e-0da05f6e0bb9";
     // Expected result of signing the challenge text
     const CHALLENGE_RESULT: &str = "aTY5Pxod1hzv/9uL9FSqxbmmCT73vFEBRv4qA+k+d6U5hcglzYvAl1MJNY2eQLTFLoFIkx/3pgm0YkjI4aS1hBAyBmMIinGrPGbOuR3PebPqITLhNWdeWZamHrlKY8tjvARtb4k0gb2LgauzhNq3zzm5aS7EU7OYaRy22/fR5fCWXw+ZyFdRYhA9qlFcA7ksct3pJwHSvSlQb2R7YuzN210Xfii43yAgtncz4CUZRcxPL7AD4mUg7dSMu0RMVKIQKsecwhNfh7bgy1zFDGMpOP8DQJ8tJfQiut5u+0yAGM4O31FJ+F7/1pvR0pgr7/O0/4K+BdhdRWNVine335u6lg==";
+    // Public encryption key base64 encoded and decrypted with self encryption key
+    const PUBLIC_ENCRYPTION_KEY: &str = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAgcEdJDDvEzAC92N0dKIvgGIh9ddJ4xccDm5QqdsdnaYXygzygjfWUzdKrEkrisQIQBRJwEQd50jths5Rg46f0fowOT2gg3OTpMo0GaQLQagZoYuMiUcsuho6ig3ahsdPq21vz1tTT92rbI+l7477tsG7y+w5jDbDF6kvKfLYs8Ga73Jbwm55yg3ibNJjsiLGa6bg+5Y9pxXxzggURKn+m5h77PDCgCiTd7zLb4L9vsRm6ijdpnuekVGIgqGZO6xUOEYOonmqDjlw8BQagu31Z5NlvhWoCQv1UUPaDOm34R2uUeWt1PWe/AUih02c3GdtIcUyqK8E1GkCHfhFD27CtwIDAQAB";
 
     // ----- Tests ------
     #[test]
@@ -139,11 +160,20 @@ mod test {
     }
 
     #[test]
-    fn construct_rsa_key_test() {
+    fn construct_rsa_private_key_test() {
         // Arrange
         let private_key = base64_decode(&PKAM_KEY_DECRYPTED_AND_ENCODED);
         // Act
         let _ = construct_rsa_private_key(&private_key);
+        // Assert it doesn't panic
+    }
+
+    #[test]
+    fn construct_rsa_public_key_test() {
+        // Arrange
+        let public_key = base64_decode(&PUBLIC_ENCRYPTION_KEY);
+        // Act
+        let _ = construct_rsa_public_key(&public_key);
         // Assert it doesn't panic
     }
 
@@ -156,5 +186,19 @@ mod test {
         let decrypted = rsa_sign(rsa_key, CHALLENGE_TEXT.as_bytes());
         // Assert
         assert_eq!(decrypted, CHALLENGE_RESULT);
+    }
+
+    #[test]
+    fn create_new_aes_key_test() {
+        let key = create_new_aes_key();
+        assert_eq!(key.len(), 32);
+    }
+
+    #[test]
+    fn encrypt_with_public_key_test() {
+        let public_key = base64_decode(&PUBLIC_ENCRYPTION_KEY);
+        let public_key = construct_rsa_public_key(&public_key);
+        let _ = encrypt_with_public_key(public_key, &TEST_KEY_DECODED);
+        // Assert it doesn't panic.
     }
 }

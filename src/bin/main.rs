@@ -18,9 +18,11 @@ fn main() {
     println!("Creating AtSecrets");
     let secrets = AtSecrets::from_file(&contents);
 
+    let contact = AtSign::new(String::from("42territorial"));
+
     let mut at_client =
         AtClient::init(secrets, AtSign::new("aliens12".to_owned())).expect("Failed to init");
     at_client
-        .authenticate_with_at_server()
+        .send_data("Hello World", contact)
         .expect("Failed to authenticate with at server");
 }
