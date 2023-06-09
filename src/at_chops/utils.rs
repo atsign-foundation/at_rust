@@ -9,6 +9,8 @@ use rsa::{
     Pkcs1v15Encrypt, RsaPrivateKey, RsaPublicKey,
 };
 
+use super::b64_encoded_string::Base64EncodedString;
+
 /// Convert a base64 encoded string to a vector of bytes.
 /// Although this just calls another function, the naming is clearer.
 pub fn base64_decode(data: &str) -> Vec<u8> {
