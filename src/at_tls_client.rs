@@ -30,8 +30,6 @@ impl TLSClient {
     }
 
     /// Reads a line for the stream and converts it to a String which is trimmed.
-    // NOTE: All unauthenticated responses start with "@" and all authenticated responses start
-    // with @user@
     pub fn read_line(&mut self) -> std::io::Result<String> {
         let mut res = vec![];
         let mut reader = BufReader::new(&mut self.stream);
