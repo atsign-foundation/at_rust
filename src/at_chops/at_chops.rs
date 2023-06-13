@@ -1,6 +1,7 @@
 use super::utils::{
     base64_decode, base64_encode, construct_aes_key, construct_rsa_private_key,
-    construct_rsa_public_key, create_new_aes_key, decrypt_key, encrypt_with_public_key, rsa_sign,
+    construct_rsa_public_key, create_new_aes_key, decrypt_with_private_key,
+    encrypt_data_with_aes_key, encrypt_with_public_key, rsa_sign,
 };
 
 /// Base64 decode the self encryption key.
@@ -16,15 +17,25 @@ pub fn decrypt_private_key(
     let iv: [u8; 16] = [0x00; 16];
     let mut cypher = construct_aes_key(decoded_self_encryption_key, &iv);
     let decoded_private_key = base64_decode(&encrypted_private_key);
-    decrypt_key(&mut cypher, &decoded_private_key)
+
+    let mut output: Vec<u8> = vec![0; decoded_private_key.len()];
+    cypher.process(&decoded_private_key, &mut output);
+
+    // NOTE: Due to the PKCS#7 type of encryption used (on the keys), the output will have padding
+
+    // NOTE: Might be worth converting to a char type then using .is_ascii_hexdigit() (or similar)
+
+    // Get the last byte, which is the number of padding bytes
+    let last = output.last().unwrap();
+    output.truncate(output.len() - usize::from(*last));
+    String::from_utf8(output).expect("Unable to convert to UTF-8")
 }
 
 /// Sign a given challenge with the decrypted private key.
 pub fn sign_challenge(challenge: &str, decrypted_private_key: &str) -> String {
-    let (_, data) = challenge.split_at(6);
     let decoded_private_key = base64_decode(&decrypted_private_key);
     let rsa_private_key = construct_rsa_private_key(&decoded_private_key);
-    rsa_sign(rsa_private_key, &data.as_bytes())
+    rsa_sign(rsa_private_key, &challenge.as_bytes())
 }
 
 /// Cut a new symmetric key to be used when interacting with a new AtSign.
@@ -38,22 +49,42 @@ pub fn encrypt_symmetric_key(symmetric_key: &str, decrypted_public_key: &str) ->
     let decoded_public_key = base64_decode(&decrypted_public_key);
     let rsa_public_key = construct_rsa_public_key(&decoded_public_key);
     let decoded_symmetric_key = base64_decode(&symmetric_key);
-    let encrypted_symmetric_key = encrypt_with_public_key(rsa_public_key, &decoded_symmetric_key);
+    let encrypted_symmetric_key = encrypt_with_public_key(&rsa_public_key, &decoded_symmetric_key);
     encrypted_symmetric_key
 }
 
-/// Encrypt data with an RSA public key.
+/// Decrypt the symmetric key with "our" private key.
+pub fn decrypt_symmetric_key(encrypted_symmetric_key: &str, decrypted_private_key: &str) -> String {
+    let decoded_private_key = base64_decode(&decrypted_private_key);
+    let rsa_private_key = construct_rsa_private_key(&decoded_private_key);
+    let decoded_symmetric_key = base64_decode(&encrypted_symmetric_key);
+    let decrypted_symmetric_key =
+        decrypt_with_private_key(&rsa_private_key, &decoded_symmetric_key);
+    decrypted_symmetric_key
+}
+
+/// Encrypt data with our RSA public key.
 pub fn encrypt_data_with_public_key(encoded_public_key: &str, data: &str) -> String {
     let decoded_public_key = base64_decode(&encoded_public_key);
     let rsa_public_key = construct_rsa_public_key(&decoded_public_key);
 
-    // NOTE: Not sure if I need to decode the data or pass it in as bytes
+    // NOTE: Not sure if I need to decode the data or pass it in as bytes.
+    // There's also the consideration that PKCS#7 padding is expected.
 
     // let decoded_data = base64_decode(&data);
     // let encrypted_data = encrypt_with_public_key(rsa_public_key, &decoded_data);
 
-    let encrypted_data = encrypt_with_public_key(rsa_public_key, &data.as_bytes());
+    let encrypted_data = encrypt_with_public_key(&rsa_public_key, &data.as_bytes());
     encrypted_data
+}
+
+/// Encrypt data with AES symm key.
+pub fn encrypt_data_with_shared_symmetric_key(encoded_symmetric_key: &str, data: &str) -> String {
+    let decoded_symmetric_key = base64_decode(&encoded_symmetric_key);
+    let iv: [u8; 16] = [0x00; 16];
+    let mut cypher = construct_aes_key(&decoded_symmetric_key, &iv);
+    let encrypted_data = encrypt_data_with_aes_key(&mut cypher, &data.as_bytes());
+    base64_encode(&encrypted_data)
 }
 
 #[cfg(test)]

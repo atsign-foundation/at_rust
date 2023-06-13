@@ -9,8 +9,6 @@ use rsa::{
     Pkcs1v15Encrypt, RsaPrivateKey, RsaPublicKey,
 };
 
-use super::b64_encoded_string::Base64EncodedString;
-
 /// Convert a base64 encoded string to a vector of bytes.
 /// Although this just calls another function, the naming is clearer.
 pub fn base64_decode(data: &str) -> Vec<u8> {
@@ -30,21 +28,6 @@ pub fn construct_aes_key(data: &[u8], iv: &[u8; 16]) -> Box<dyn SynchronousStrea
     crypto::aes::ctr(KeySize::KeySize256, data, iv)
 }
 
-/// Decrypt a private key using an AES key.
-pub fn decrypt_key(cypher: &mut Box<dyn SynchronousStreamCipher>, encrypted_key: &[u8]) -> String {
-    let mut output: Vec<u8> = vec![0; encrypted_key.len()];
-    cypher.process(&encrypted_key, &mut output);
-
-    // NOTE: Due to the PKCS#7 type of encryption used (on the keys), the output will have padding
-
-    // NOTE: Might be worth converting to a char type then using .is_ascii_hexdigit() (or similar)
-
-    // Get the last byte, which is the number of padding bytes
-    let last = output.last().unwrap();
-    output.truncate(output.len() - usize::from(*last));
-    String::from_utf8(output).expect("Unable to convert to UTF-8")
-}
-
 /// Construct an RSA private key from a decoded key.
 pub fn construct_rsa_private_key(data: &[u8]) -> RsaPrivateKey {
     let rsa_key = RsaPrivateKey::from_pkcs8_der(&data).expect("Unable to create RSA Private Key");
@@ -52,6 +35,7 @@ pub fn construct_rsa_private_key(data: &[u8]) -> RsaPrivateKey {
     rsa_key
 }
 
+/// Construct an RSA public key from a decoded key.
 pub fn construct_rsa_public_key(data: &[u8]) -> RsaPublicKey {
     let rsa_key =
         RsaPublicKey::from_public_key_der(&data).expect("Unable to create RSA Public Key");
@@ -85,12 +69,29 @@ pub fn create_new_aes_key() -> [u8; 32] {
 }
 
 /// Encrypt some data using an RSA public key.
-pub fn encrypt_with_public_key(public_key: RsaPublicKey, data: &[u8]) -> String {
+pub fn encrypt_with_public_key(public_key: &RsaPublicKey, data: &[u8]) -> String {
     let mut rng = rand::thread_rng();
     let encrypted_symmetric_key = public_key
         .encrypt(&mut rng, Pkcs1v15Encrypt, data)
         .expect("Failed to encrypt symmetric key");
     base64_encode(&encrypted_symmetric_key)
+}
+
+/// Decrypt some data using an RSA private key. Returns a base64 encoded string.
+pub fn decrypt_with_private_key(private_key: &RsaPrivateKey, data: &[u8]) -> String {
+    let decrypted_symmetric_key = private_key
+        .decrypt(Pkcs1v15Encrypt, data)
+        .expect("Failed to decrypt symmetric key");
+    base64_encode(&decrypted_symmetric_key)
+}
+
+pub fn encrypt_data_with_aes_key(
+    aes_key: &mut Box<dyn SynchronousStreamCipher>,
+    data: &[u8],
+) -> Vec<u8> {
+    let mut output: Vec<u8> = vec![0; data.len()];
+    aes_key.process(&data, &mut output);
+    output
 }
 
 #[cfg(test)]
@@ -152,16 +153,6 @@ mod test {
     }
 
     #[test]
-    fn decrypt_key_test() {
-        let decoded_key = base64_decode(SELF_ENCRYPTION_KEY_ENCODED);
-        let iv: [u8; 16] = [0x00; 16];
-        let mut cipher = construct_aes_key(&decoded_key, &iv);
-        let decoded_pkam_key = base64_decode(PKAM_KEY_ENCRYPTED_AND_ENCODED);
-        let result = decrypt_key(&mut cipher, &decoded_pkam_key);
-        assert_eq!(result, PKAM_KEY_DECRYPTED_AND_ENCODED);
-    }
-
-    #[test]
     fn construct_rsa_private_key_test() {
         // Arrange
         let private_key = base64_decode(&PKAM_KEY_DECRYPTED_AND_ENCODED);
@@ -200,7 +191,7 @@ mod test {
     fn encrypt_with_public_key_test() {
         let public_key = base64_decode(&PUBLIC_ENCRYPTION_KEY);
         let public_key = construct_rsa_public_key(&public_key);
-        let _ = encrypt_with_public_key(public_key, &TEST_KEY_DECODED);
+        let _ = encrypt_with_public_key(&public_key, &TEST_KEY_DECODED);
         // Assert it doesn't panic.
     }
 }

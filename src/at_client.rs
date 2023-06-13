@@ -1,5 +1,6 @@
 use crate::at_chops::at_chops::{
-    create_new_shared_symmetric_key, encrypt_data_with_public_key, encrypt_symmetric_key,
+    create_new_shared_symmetric_key, decrypt_symmetric_key, encrypt_data_with_public_key,
+    encrypt_data_with_shared_symmetric_key, encrypt_symmetric_key,
 };
 use crate::at_error::{AtError, Result};
 use crate::at_secrets::AtSecrets;
@@ -42,10 +43,12 @@ impl AtClient {
                 &self.secrets.aes_encrypt_public_key,
             ),
         )?;
+        let symm_key: String;
         if response.contains("error:AT0015-key not found") {
             println!("Creating new symmetric key");
             // Create symm key
             let new_key = create_new_shared_symmetric_key();
+            symm_key = new_key.clone();
             let encrypted_encoded_sym_key =
                 encrypt_symmetric_key(&new_key, &self.secrets.aes_encrypt_public_key);
             // Save for our use
@@ -86,9 +89,29 @@ impl AtClient {
         } else if response.contains("data") {
             println!("Already have a copy of the key");
             // Decrypt symm key
+            let encrypted_symmetric_key = response.split(":").collect::<Vec<_>>()[1];
+            symm_key = decrypt_symmetric_key(
+                &encrypted_symmetric_key,
+                &self.secrets.aes_encrypt_private_key,
+            );
+            println!("Decrypted symmetric key: {}", symm_key);
         } else {
             return Err(AtError::new(String::from("Unknown response from server")));
         }
+        // Send data encrypted with symm key
+        let encrypted_data_to_send = encrypt_data_with_shared_symmetric_key(&symm_key, data);
+        let _ = UpdateVerb::execute(
+            &mut self.tls_client,
+            UpdateVerbInputs::new(
+                &self.at_sign,
+                // TODO: Pass this in as an option somewhere
+                "data_doug",
+                &encrypted_data_to_send,
+                Some("doug"),
+                None,
+                Some(&receiver),
+            ),
+        );
         Ok(())
     }
 
@@ -134,16 +157,3 @@ fn get_at_sign_server_addr(at_sign: &str) -> Result<AtServerAddr> {
         .expect("Unable to parse port to a u16");
     Ok(AtServerAddr::new(host, port))
 }
-
-// NOTE: Maybe each verb should know how to encode/decode/format itself?
-// This could be good because each verb is likely to expect a different format.
-// It would be the responsibility of the TLSClient to send and receive information but really do
-// anything with it. Maybe just trim and turn into a String?
-// Internal requirements:
-// - Get the at sign server address
-// - Connect to the at sign server
-// - Authenticate with at sign
-// External requirements:
-// - Get data
-// - Delete data
-// - Update data

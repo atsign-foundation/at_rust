@@ -59,6 +59,7 @@ impl<'a> Verb<'a> for UpdateVerb {
         println!("update string: {}", send_string);
         tls_client.send(send_string)?;
         let response = tls_client.read_line()?;
+        // TODO: Check response is formatted like "data: <data>" and return Error if not.
         println!("update response: {:?}", response);
         Ok(())
     }
