@@ -1,6 +1,7 @@
 use crate::at_chops::at_chops::{
-    create_new_shared_symmetric_key, decrypt_symmetric_key, encrypt_data_with_public_key,
-    encrypt_data_with_shared_symmetric_key, encrypt_symmetric_key,
+    create_new_shared_symmetric_key, decrypt_data_with_shared_symmetric_key, decrypt_symmetric_key,
+    decrypt_symmetric_key_2, encrypt_data_with_public_key, encrypt_data_with_shared_symmetric_key,
+    encrypt_symmetric_key,
 };
 use crate::at_error::{AtError, Result};
 use crate::at_secrets::AtSecrets;
@@ -8,6 +9,7 @@ use crate::at_server_addr::AtServerAddr;
 use crate::at_sign::AtSign;
 use crate::at_tls_client::TLSClient;
 use crate::verbs::llookup::{LlookupVerb, LlookupVerbInputs};
+use crate::verbs::lookup::{LookupVerb, LookupVerbInputs};
 use crate::verbs::plookup::{PlookupVerb, PlookupVerbInputs};
 use crate::verbs::update::{UpdateVerb, UpdateVerbInputs};
 use crate::verbs::{from::FromVerb, from::FromVerbInputs, Verb};
@@ -115,7 +117,33 @@ impl AtClient {
         Ok(())
     }
 
-    pub fn authenticate_with_at_server(&mut self) -> Result<()> {
+    pub fn read_data(&mut self, from: AtSign) -> Result<()> {
+        self.authenticate_with_at_server()?;
+        // Fetch data
+        let response = LookupVerb::execute(
+            &mut self.tls_client,
+            LookupVerbInputs::new(&from, "data_doug", Some("doug")),
+        )?;
+        let encrypted_and_encoded_data = response.split(":").collect::<Vec<_>>()[1];
+        // Fetch symm key
+        let response = LookupVerb::execute(
+            &mut self.tls_client,
+            LookupVerbInputs::new(&from, "shared_key", None),
+        )?;
+        let encrypted_and_encoded_symm_key = response.split(":").collect::<Vec<_>>()[1];
+        let symm_key = decrypt_symmetric_key_2(
+            &encrypted_and_encoded_symm_key,
+            &self.secrets.aes_encrypt_private_key,
+        );
+        println!("Decrypted symmetric key: {}", symm_key);
+        let encoded_data =
+            decrypt_data_with_shared_symmetric_key(&symm_key, &encrypted_and_encoded_data);
+        println!("Decrypted data: {}", encoded_data);
+
+        Ok(())
+    }
+
+    fn authenticate_with_at_server(&mut self) -> Result<()> {
         let _ = FromVerb::execute(
             &mut self.tls_client,
             FromVerbInputs::new(&self.at_sign, &self.secrets.aes_pkam_private_key),

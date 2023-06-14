@@ -9,6 +9,9 @@ fn main() {
     // Read the contents of the file into a string.
     let args: Vec<String> = env::args().collect();
     let filename = args[1].clone();
+    let app_type = args[2].clone();
+    let host = args[3].clone();
+    let contact = args[4].clone();
 
     println!("Reading file");
     let mut file = File::open(filename).unwrap();
@@ -18,11 +21,18 @@ fn main() {
     println!("Creating AtSecrets");
     let secrets = AtSecrets::from_file(&contents);
 
-    let contact = AtSign::new(String::from("virgogigantic64"));
+    let contact = AtSign::new(contact);
 
-    let mut at_client =
-        AtClient::init(secrets, AtSign::new("aliens12".to_owned())).expect("Failed to init");
-    at_client
-        .send_data("Hello World", contact)
-        .expect("Failed to authenticate with at server");
+    let mut at_client = AtClient::init(secrets, AtSign::new(host)).expect("Failed to init");
+
+    if app_type == "client" {
+        at_client
+            .send_data("Hello World", contact)
+            .expect("Failed to authenticate with at server");
+    } else if app_type == "server" {
+        let data = at_client
+            .read_data(contact)
+            .expect("Failed to authenticate with at server");
+        println!("Received data: {:?}", data);
+    }
 }

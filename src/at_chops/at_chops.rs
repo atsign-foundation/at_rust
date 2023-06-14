@@ -1,7 +1,8 @@
 use super::utils::{
     base64_decode, base64_encode, construct_aes_key, construct_rsa_private_key,
-    construct_rsa_public_key, create_new_aes_key, decrypt_with_private_key,
-    encrypt_data_with_aes_key, encrypt_with_public_key, rsa_sign,
+    construct_rsa_public_key, create_new_aes_key, decrypt_data_with_aes_key,
+    decrypt_symm_key_with_private_key, decrypt_with_private_key, encrypt_data_with_aes_key,
+    encrypt_with_public_key, rsa_sign,
 };
 
 /// Base64 decode the self encryption key.
@@ -48,6 +49,7 @@ pub fn create_new_shared_symmetric_key() -> String {
 pub fn encrypt_symmetric_key(symmetric_key: &str, decrypted_public_key: &str) -> String {
     let decoded_public_key = base64_decode(&decrypted_public_key);
     let rsa_public_key = construct_rsa_public_key(&decoded_public_key);
+    // NOTE: Might not want to decode symmetric key
     let decoded_symmetric_key = base64_decode(&symmetric_key);
     let encrypted_symmetric_key = encrypt_with_public_key(&rsa_public_key, &decoded_symmetric_key);
     encrypted_symmetric_key
@@ -87,6 +89,29 @@ pub fn encrypt_data_with_shared_symmetric_key(encoded_symmetric_key: &str, data:
     base64_encode(&encrypted_data)
 }
 
+/// Decrypt the symmetric key with "our" private key.
+pub fn decrypt_symmetric_key_2(
+    encrypted_symmetric_key: &str,
+    decrypted_private_key: &str,
+) -> String {
+    let decoded_private_key = base64_decode(&decrypted_private_key);
+    let rsa_private_key = construct_rsa_private_key(&decoded_private_key);
+    let decoded_symmetric_key = base64_decode(&encrypted_symmetric_key);
+    let decrypted_symmetric_key =
+        decrypt_symm_key_with_private_key(&rsa_private_key, &decoded_symmetric_key);
+    decrypted_symmetric_key
+}
+
+pub fn decrypt_data_with_shared_symmetric_key(encoded_symmetric_key: &str, data: &str) -> String {
+    let decoded_symmetric_key = base64_decode(&encoded_symmetric_key);
+    println!("decoded_symmetric_key: {:?}", decoded_symmetric_key);
+    let iv: [u8; 16] = [0x00; 16];
+    let mut cypher = construct_aes_key(&decoded_symmetric_key, &iv);
+    let encrypted_data = decrypt_data_with_aes_key(&mut cypher, &data.as_bytes());
+    // base64_encode(&encrypted_data)
+    String::from_utf8(encrypted_data).expect("Unable to convert to UTF-8")
+}
+
 #[cfg(test)]
 mod test {
 
@@ -105,7 +130,7 @@ mod test {
     const PKAM_KEY_DECRYPTED_AND_ENCODED: &str = "MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCZw9RGU0SnB7hJz5D38SkZjT2mEYt3LTT7NexdzGnX+qkuSwuS7iqICS8cLb0KW2yNaRbWrG2w5wCBFcQ6LPyyiQWAmod2F3LH3c3k06+yC/hw/EhiJqdYOW1Up3WjG4JRzC3G+dIpwMXtScu9AVFJqARPc0j/w8xTYsTTPfsf5A7gFpPRJd/NBZJEpQxZjW5fCRFP+zKFhVEkPHE5rtyVM5Vz4pK6D2ziFoNJdIbme1gWVC4beS4qqbKpLyzfHkfWGSWy/4gEEJZflnWsKVs+wPjNIljsUMAlEMqNzqmuDW0GFc7KNWAK3cKs8CEEGQuqik0xuTROD4JyMPP6nNGvAgMBAAECggEAFA2hCobjhjEQjLfAPUW7SXTNHHJfUOyZY0W2DMmS6DLti3cIDGJ5M4KXHUKty8L+ljalXtvf9lk6DJutGrUxQ4txJ0N/9Ru7wWsg5f3hhQPgo8OTIRHPc0cSBh9MzTfSOB67vZ5pFT7p0Td1lbGtS0DZRw9O7uQ3KozQBIipzo+4y3SaWsPshohSSMjeyKXfEQcy4RwDC+/bX8+pR7jLzkIqqILUs3vuRNAcPLxs5+FK3S/LJmnkhXV+7+tUuHIpl6mDgfhWDUKaOFzq+0cbzS15EJXW6YYdlPdbrj24JYbkUQHxYSEvxnR2+OOtj5HVQnIaNEPf9s0KW8IMLys7aQKBgQDJTnpdVqtN4M2Zuj8bN8ew1x6LkrqLV8EtlxQbn+kLgzmqqj56v6NVXHaxZh3OaIBoHpAQGPR26UAOBcXT5k1PhQ92RAqXh8/dbV+iBrnBjubQawZ3TK2yjclZMuFCW+/tyB6dOwDi+cO/IfBAh5P+mWHOZOa9y+dL2KjVSzL1TQKBgQDDiq3rjrAlPjtcZcMit4r7p4mZtUI0tCJEzt8J/YK9AC+A+g8Lxz7IKCH1vscFhQNU5E65omatCAYpGo17AQ59hLtbC0f3PJXNQTGLfGYiFHPsmOTf4B9w0c6ge1LPPzbfAG+1fvQ+iaa+4d7yNek3OyuH7KiknUN3AKyiFAo06wKBgAP0BZUlqZGK856sOKcJLmO7pb7p773iyElj6SItvr7aIdzHIRj6AHQhr7cGIVm3VaY1y3B1fP+Ezxw3Ys4pfKUuIMKazXZyVVOs3S7qYOV7L+8x2tum5tZV0Hlu9Vt/QLPztR4zVW4fp4duXDB4OSDL1E7gTmO1yGIF7DLcGjEVAoGBAJFiDEk0v3YRPOVHq7umJylPuRiVEXJJ86ig/mdZGtkWyDrmsEUbkGwUmpsxiptp974oOPf/7ML9UkdBPKuVb4aXJw1b59fELcR7kjCY/v6bokzoqFJjOj0RYMUkq772yv8mPef9Se8tPNJy8OW4e3ra/VSD+ibZ3g0ebTvcFnKdAoGAIGHTlkKJmP8nyRNSDceBnwRvqLPt7AC32kSxTl9mqVgYn8Slz+L33dixiMOL8/T/+JY5XxX/iQepBL/wmuxy6O+QoLxoJBIux7qoyYHyoKuOTaXbVs79dREIh/GHf0uQKGQ2MB6FJAuKgzBKyJYjkCf9t/KA2Ja3gxlYnwHBpcw=";
     // Challenge text
     const CHALLENGE_TEXT: &str =
-        "@data:_6e27e164-e45b-4ae1-8714-7545d36b6ed4@aliens12:9ef2ec2c-39d4-4e25-825e-0da05f6e0bb9";
+        "_6e27e164-e45b-4ae1-8714-7545d36b6ed4@aliens12:9ef2ec2c-39d4-4e25-825e-0da05f6e0bb9";
     // Expected result of signing the challenge text
     const CHALLENGE_RESULT: &str = "aTY5Pxod1hzv/9uL9FSqxbmmCT73vFEBRv4qA+k+d6U5hcglzYvAl1MJNY2eQLTFLoFIkx/3pgm0YkjI4aS1hBAyBmMIinGrPGbOuR3PebPqITLhNWdeWZamHrlKY8tjvARtb4k0gb2LgauzhNq3zzm5aS7EU7OYaRy22/fR5fCWXw+ZyFdRYhA9qlFcA7ksct3pJwHSvSlQb2R7YuzN210Xfii43yAgtncz4CUZRcxPL7AD4mUg7dSMu0RMVKIQKsecwhNfh7bgy1zFDGMpOP8DQJ8tJfQiut5u+0yAGM4O31FJ+F7/1pvR0pgr7/O0/4K+BdhdRWNVine335u6lg==";
     // Public encryption key base64 encoded and decrypted with self encryption key

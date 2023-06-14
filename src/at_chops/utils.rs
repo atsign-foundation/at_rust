@@ -85,7 +85,29 @@ pub fn decrypt_with_private_key(private_key: &RsaPrivateKey, data: &[u8]) -> Str
     base64_encode(&decrypted_symmetric_key)
 }
 
+pub fn decrypt_symm_key_with_private_key(private_key: &RsaPrivateKey, symm_key: &[u8]) -> String {
+    let decrypted_symmetric_key = private_key
+        .decrypt(Pkcs1v15Encrypt, symm_key)
+        .expect("Failed to decrypt symmetric key");
+    println!("Decrypted symmetric key: {:?}", decrypted_symmetric_key);
+    let key = String::from_utf8(decrypted_symmetric_key).expect("Failed to convert to UTF-8");
+    let key_bytes = base64_decode(&key);
+    println!("Decrypted symmetric key bytes: {:?}", key_bytes);
+    base64_encode(&key_bytes)
+}
+
+/// Encrypt some data using an AES key.
 pub fn encrypt_data_with_aes_key(
+    aes_key: &mut Box<dyn SynchronousStreamCipher>,
+    data: &[u8],
+) -> Vec<u8> {
+    let mut output: Vec<u8> = vec![0; data.len()];
+    aes_key.process(&data, &mut output);
+    output
+}
+
+/// This is the same as encrypt_data_with_aes_key.
+pub fn decrypt_data_with_aes_key(
     aes_key: &mut Box<dyn SynchronousStreamCipher>,
     data: &[u8],
 ) -> Vec<u8> {
@@ -121,6 +143,12 @@ mod test {
     const CHALLENGE_RESULT: &str = "aTY5Pxod1hzv/9uL9FSqxbmmCT73vFEBRv4qA+k+d6U5hcglzYvAl1MJNY2eQLTFLoFIkx/3pgm0YkjI4aS1hBAyBmMIinGrPGbOuR3PebPqITLhNWdeWZamHrlKY8tjvARtb4k0gb2LgauzhNq3zzm5aS7EU7OYaRy22/fR5fCWXw+ZyFdRYhA9qlFcA7ksct3pJwHSvSlQb2R7YuzN210Xfii43yAgtncz4CUZRcxPL7AD4mUg7dSMu0RMVKIQKsecwhNfh7bgy1zFDGMpOP8DQJ8tJfQiut5u+0yAGM4O31FJ+F7/1pvR0pgr7/O0/4K+BdhdRWNVine335u6lg==";
     // Public encryption key base64 encoded and decrypted with self encryption key
     const PUBLIC_ENCRYPTION_KEY: &str = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAgcEdJDDvEzAC92N0dKIvgGIh9ddJ4xccDm5QqdsdnaYXygzygjfWUzdKrEkrisQIQBRJwEQd50jths5Rg46f0fowOT2gg3OTpMo0GaQLQagZoYuMiUcsuho6ig3ahsdPq21vz1tTT92rbI+l7477tsG7y+w5jDbDF6kvKfLYs8Ga73Jbwm55yg3ibNJjsiLGa6bg+5Y9pxXxzggURKn+m5h77PDCgCiTd7zLb4L9vsRm6ijdpnuekVGIgqGZO6xUOEYOonmqDjlw8BQagu31Z5NlvhWoCQv1UUPaDOm34R2uUeWt1PWe/AUih02c3GdtIcUyqK8E1GkCHfhFD27CtwIDAQAB";
+    // Data to be decrypted with private key
+    const ENCRYPTED_AND_ENCODED_SHARED_SYMM_KEY: &str = "QHpRukNMwUjTIwqv8xY8EEnMMOrvGivOWeAdGR/i11LI9TuLDOu4yXD3XDxtUcPIbRHen6VdZa92lv6VZlx4HennvUsa+4DPbE1XDJOKn7UhetgeFQBdLjKymOx1wD13lLlacRA4ccou8UWKpENHM8xQ3ZxGf+xDKQxIR7eOvpbP1bD/XvC1uzfpy3E11lnD2xr6QC1OueorDhUVytKM1yaniJw/DtU+fcfnZN8SO6Rg0kIyN6Xc9CqFzzhmJgG2ic2Nrm/lfH35v8hSQ2KSGdHHA8y3khr1v371LSU1WRzZ2GLsf8iq2bnSphE4I+86jFiUY21XhwvjqXSsi57gBQ==";
+    // Encryption private key base64 encoded and decrypted
+    const DECRYPTED_ENCRYPTION_PRIVATE_KEY: &str = "MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCBwR0kMO8TMAL3Y3R0oi+AYiH110njFxwOblCp2x2dphfKDPKCN9ZTN0qsSSuKxAhAFEnARB3nSO2GzlGDjp/R+jA5PaCDc5OkyjQZpAtBqBmhi4yJRyy6GjqKDdqGx0+rbW/PW1NP3atsj6Xvjvu2wbvL7DmMNsMXqS8p8tizwZrvclvCbnnKDeJs0mOyIsZrpuD7lj2nFfHOCBREqf6bmHvs8MKAKJN3vMtvgv2+xGbqKN2me56RUYiCoZk7rFQ4Rg6ieaoOOXDwFBqC7fVnk2W+FagJC/VRQ9oM6bfhHa5R5a3U9Z78BSKHTZzcZ20hxTKorwTUaQId+EUPbsK3AgMBAAECggEATj4D85HqaFiYQVNgowA1wqXqMpOKw3xo966/x10Qw8KnL7iU977x56Y8yh0pO3kwPGu/eUfZ/GC2koaREtKLPxQtxiaKRxoHmuQvfJK2EvZp1kcPDKy1pNcyG5N1BbbkLMxGEvTQDSXvO/x3JDjFQpQaSUJ+BTX0eK0Veqcs0191OVji2nvnL+kqfAtqjq/X3ha9UYbtKSbuIeHOkbzthsM47F1IfaS6XpzBA1See4amEYpBSW8khbV825euMH0qkVvAudeKuEfB4VWadNh+AE3k/VCZwOdMcAQ9kVwWBQkNMnLSXFML3sjiIAgFgyxmKCtx5wo8z3YNCuHeUwEWQQKBgQDtFvEEfbhxJryoS7woUT/qAL7HLMKesybvqYLLjE1qX+EMTkxOjyrKmXioyqbfZsPNKBjBXsyJyRSIIDJNcsejvNrl+0rj/ZsnQEUQjvrBG4UHN0er5yDR0NwVWz2rdsSZtoCjQRS7OZQ21KNAfOXCLLZ3tV38Ro/qeF+fH56GVwKBgQCMGob5sVp715J7m0EPVaah5Y/KntE+2/b+Z/gJfgtdKqsY//wCU3XfLrA9q1IYXsVZlI9iAO32YDqnIANtcVruGLGAcbMPyNcScVHf0wKfZ2m3+NZzeLWDLz7w2z/b0u06fjSF6nWbpGeZfnPieiuMarE3AxHjSeii1NVsJ54qoQKBgQDsNAryun3i3QDfenR+hlPywcNPk5xhl4KXCn4wZBtMezEunWMQcTnklnnLT/poX217GxNusw97xkUaSVlUJ6IV0rUSowS9l4/XzwP/tzLC6LPjuINDFAVyg26AKGKMTMsZiOUnwFLzJC4xYi8ytDwC86DmKl70UyhWJI6/bTT2CQKBgFT6lhoHh/GL7O6KWej6M6sJObFVqWduNh9TYrAnQq9M/SCZy/qBMwKfKAkPzCi5+wv9vwZbt/pznb/W/B0630OBuNBGpqyRTlqCX33aWEHlkMsk5LZ/ZeFfG9cttUsZYgjTmfoMHy+7hZclixa4sYdnA3xxoTzyjGePnrAOS7JhAoGBANsZLvGa1BaIy9ZHanGKj6PDQhF+1iu5QLD7CdOkWqjumpej3djxXfMIzPzrABQOBb7U0f8NLZcMDdu83kZzyNtqy3JqOukehUgeQ06ml5hPiKArtDMYFrVJqc8h8Nj35NuGWt8Rt8cmqDLjxk1SyeachccUrg9Hy3P8MjwhWxK+";
+    // Decrypted shared symm key
+    const DECRYPTED_SHARED_SYM_KEY: &str = "n7GSH9uLZ6c9JdLSvjoBNki+fDZh9oPhdwnU7WGKhT0=";
 
     // ----- Tests ------
     #[test]
@@ -193,5 +221,16 @@ mod test {
         let public_key = construct_rsa_public_key(&public_key);
         let _ = encrypt_with_public_key(&public_key, &TEST_KEY_DECODED);
         // Assert it doesn't panic.
+    }
+
+    #[test]
+    fn decrypt_with_private_key_test() {
+        // Arrange
+        let private_key = base64_decode(&DECRYPTED_ENCRYPTION_PRIVATE_KEY);
+        let rsa_key = construct_rsa_private_key(&private_key);
+        let data = base64_decode(&ENCRYPTED_AND_ENCODED_SHARED_SYMM_KEY);
+        // Act
+        let res = decrypt_with_private_key(&rsa_key, &data);
+        assert_eq!(res, DECRYPTED_SHARED_SYM_KEY);
     }
 }

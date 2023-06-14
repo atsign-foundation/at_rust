@@ -1,5 +1,6 @@
 pub mod from;
 pub mod llookup;
+pub mod lookup;
 pub mod plookup;
 pub mod update;
 
