@@ -1,7 +1,6 @@
 use crate::at_chops::at_chops::{
     create_new_shared_symmetric_key, decrypt_data_with_shared_symmetric_key, decrypt_symmetric_key,
     decrypt_symmetric_key_2, encrypt_data_with_public_key, encrypt_data_with_shared_symmetric_key,
-    encrypt_symmetric_key,
 };
 use crate::at_error::{AtError, Result};
 use crate::at_secrets::AtSecrets;
@@ -51,9 +50,9 @@ impl AtClient {
             // Create symm key
             let new_key = create_new_shared_symmetric_key();
             symm_key = new_key.clone();
-            let encrypted_encoded_sym_key =
-                encrypt_symmetric_key(&new_key, &self.secrets.aes_encrypt_public_key);
             // Save for our use
+            let encrypted_encoded_sym_key =
+                encrypt_data_with_public_key(&self.secrets.aes_encrypt_public_key, &new_key);
             let _ = UpdateVerb::execute(
                 &mut self.tls_client,
                 UpdateVerbInputs::new(

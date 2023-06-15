@@ -77,23 +77,12 @@ pub fn encrypt_with_public_key(public_key: &RsaPublicKey, data: &[u8]) -> String
     base64_encode(&encrypted_symmetric_key)
 }
 
-/// Decrypt some data using an RSA private key. Returns a base64 encoded string.
-pub fn decrypt_with_private_key(private_key: &RsaPrivateKey, data: &[u8]) -> String {
-    let decrypted_symmetric_key = private_key
-        .decrypt(Pkcs1v15Encrypt, data)
-        .expect("Failed to decrypt symmetric key");
-    base64_encode(&decrypted_symmetric_key)
-}
-
 pub fn decrypt_symm_key_with_private_key(private_key: &RsaPrivateKey, symm_key: &[u8]) -> String {
     let decrypted_symmetric_key = private_key
         .decrypt(Pkcs1v15Encrypt, symm_key)
         .expect("Failed to decrypt symmetric key");
     println!("Decrypted symmetric key: {:?}", decrypted_symmetric_key);
-    let key = String::from_utf8(decrypted_symmetric_key).expect("Failed to convert to UTF-8");
-    let key_bytes = base64_decode(&key);
-    println!("Decrypted symmetric key bytes: {:?}", key_bytes);
-    base64_encode(&key_bytes)
+    base64_encode(&decrypted_symmetric_key)
 }
 
 /// Encrypt some data using an AES key.
@@ -221,16 +210,5 @@ mod test {
         let public_key = construct_rsa_public_key(&public_key);
         let _ = encrypt_with_public_key(&public_key, &TEST_KEY_DECODED);
         // Assert it doesn't panic.
-    }
-
-    #[test]
-    fn decrypt_with_private_key_test() {
-        // Arrange
-        let private_key = base64_decode(&DECRYPTED_ENCRYPTION_PRIVATE_KEY);
-        let rsa_key = construct_rsa_private_key(&private_key);
-        let data = base64_decode(&ENCRYPTED_AND_ENCODED_SHARED_SYMM_KEY);
-        // Act
-        let res = decrypt_with_private_key(&rsa_key, &data);
-        assert_eq!(res, DECRYPTED_SHARED_SYM_KEY);
     }
 }

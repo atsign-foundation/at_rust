@@ -1,8 +1,8 @@
 use super::utils::{
     base64_decode, base64_encode, construct_aes_key, construct_rsa_private_key,
     construct_rsa_public_key, create_new_aes_key, decrypt_data_with_aes_key,
-    decrypt_symm_key_with_private_key, decrypt_with_private_key, encrypt_data_with_aes_key,
-    encrypt_with_public_key, rsa_sign,
+    decrypt_symm_key_with_private_key, encrypt_data_with_aes_key, encrypt_with_public_key,
+    rsa_sign,
 };
 
 /// Base64 decode the self encryption key.
@@ -42,26 +42,18 @@ pub fn sign_challenge(challenge: &str, decrypted_private_key: &str) -> String {
 /// Cut a new symmetric key to be used when interacting with a new AtSign.
 pub fn create_new_shared_symmetric_key() -> String {
     let key = create_new_aes_key();
+    println!("New symmetric key: {:?}", key);
     base64_encode(&key)
-}
-
-/// Encrypt the symmetric key with with "our" public key.
-pub fn encrypt_symmetric_key(symmetric_key: &str, decrypted_public_key: &str) -> String {
-    let decoded_public_key = base64_decode(&decrypted_public_key);
-    let rsa_public_key = construct_rsa_public_key(&decoded_public_key);
-    // NOTE: Might not want to decode symmetric key
-    let decoded_symmetric_key = base64_decode(&symmetric_key);
-    let encrypted_symmetric_key = encrypt_with_public_key(&rsa_public_key, &decoded_symmetric_key);
-    encrypted_symmetric_key
 }
 
 /// Decrypt the symmetric key with "our" private key.
 pub fn decrypt_symmetric_key(encrypted_symmetric_key: &str, decrypted_private_key: &str) -> String {
     let decoded_private_key = base64_decode(&decrypted_private_key);
     let rsa_private_key = construct_rsa_private_key(&decoded_private_key);
+    // NOTE: Probs need to do the same as decrypt_symmetric_key_2
     let decoded_symmetric_key = base64_decode(&encrypted_symmetric_key);
     let decrypted_symmetric_key =
-        decrypt_with_private_key(&rsa_private_key, &decoded_symmetric_key);
+        decrypt_symm_key_with_private_key(&rsa_private_key, &decoded_symmetric_key);
     decrypted_symmetric_key
 }
 
@@ -71,12 +63,9 @@ pub fn encrypt_data_with_public_key(encoded_public_key: &str, data: &str) -> Str
     let rsa_public_key = construct_rsa_public_key(&decoded_public_key);
 
     // NOTE: Not sure if I need to decode the data or pass it in as bytes.
-    // There's also the consideration that PKCS#7 padding is expected.
 
-    // let decoded_data = base64_decode(&data);
-    // let encrypted_data = encrypt_with_public_key(rsa_public_key, &decoded_data);
-
-    let encrypted_data = encrypt_with_public_key(&rsa_public_key, &data.as_bytes());
+    let encrypted_data = encrypt_with_public_key(&rsa_public_key, &base64_decode(&data));
+    // let encrypted_data = encrypt_with_public_key(&rsa_public_key, &data.as_bytes());
     encrypted_data
 }
 
@@ -107,7 +96,9 @@ pub fn decrypt_data_with_shared_symmetric_key(encoded_symmetric_key: &str, data:
     println!("decoded_symmetric_key: {:?}", decoded_symmetric_key);
     let iv: [u8; 16] = [0x00; 16];
     let mut cypher = construct_aes_key(&decoded_symmetric_key, &iv);
-    let encrypted_data = decrypt_data_with_aes_key(&mut cypher, &data.as_bytes());
+    // let mut encrypted_data = decrypt_data_with_aes_key(&mut cypher, &data.as_bytes());
+    let mut encrypted_data = decrypt_data_with_aes_key(&mut cypher, &base64_decode(&data));
+
     // base64_encode(&encrypted_data)
     String::from_utf8(encrypted_data).expect("Unable to convert to UTF-8")
 }
@@ -161,12 +152,5 @@ mod test {
     fn create_new_shared_symmetric_key_test() {
         let result = create_new_shared_symmetric_key();
         assert_eq!(result.len(), 44);
-    }
-
-    #[test]
-    fn encrypt_symmetric_key_test() {
-        let _ = encrypt_symmetric_key(&SYMMETRIC_KEY, &PUBLIC_ENCRYPTION_KEY);
-        // Assert it doesn't panic. This function uses randomness so we can't test the result
-        // without mocking the randomness.
     }
 }
