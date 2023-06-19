@@ -1,5 +1,3 @@
-use log::info;
-
 use super::{prelude::*, Verb};
 
 pub struct UpdateVerbInputs<'a> {
@@ -58,7 +56,7 @@ impl<'a> Verb<'a> for UpdateVerb {
         send_string.push_str(&format!("@{}", input.from_at_sign.get_at_sign()));
         send_string.push_str(&format!(" {}\n", input.data));
         tls_client.send(send_string)?;
-        let response = tls_client.read_line()?;
+        let _ = tls_client.read_line()?;
         // TODO: Check response is formatted like "data: <data>" and return Error if not.
         Ok(())
     }

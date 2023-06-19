@@ -77,12 +77,13 @@ pub fn encrypt_data_with_shared_symmetric_key(encoded_symmetric_key: &str, data:
     base64_encode(&encrypted_data)
 }
 
+/// Decrypt data with an encoded AES symm key.
 pub fn decrypt_data_with_shared_symmetric_key(encoded_symmetric_key: &str, data: &str) -> String {
     let decoded_symmetric_key = base64_decode(&encoded_symmetric_key);
     let iv: [u8; 16] = [0x00; 16];
     let mut cypher = construct_aes_key(&decoded_symmetric_key, &iv);
     // let mut encrypted_data = decrypt_data_with_aes_key(&mut cypher, &data.as_bytes());
-    let mut encrypted_data = decrypt_data_with_aes_key(&mut cypher, &base64_decode(&data));
+    let encrypted_data = decrypt_data_with_aes_key(&mut cypher, &base64_decode(&data));
 
     // base64_encode(&encrypted_data)
     String::from_utf8(encrypted_data).expect("Unable to convert to UTF-8")
@@ -109,10 +110,6 @@ mod test {
         "_6e27e164-e45b-4ae1-8714-7545d36b6ed4@aliens12:9ef2ec2c-39d4-4e25-825e-0da05f6e0bb9";
     // Expected result of signing the challenge text
     const CHALLENGE_RESULT: &str = "aTY5Pxod1hzv/9uL9FSqxbmmCT73vFEBRv4qA+k+d6U5hcglzYvAl1MJNY2eQLTFLoFIkx/3pgm0YkjI4aS1hBAyBmMIinGrPGbOuR3PebPqITLhNWdeWZamHrlKY8tjvARtb4k0gb2LgauzhNq3zzm5aS7EU7OYaRy22/fR5fCWXw+ZyFdRYhA9qlFcA7ksct3pJwHSvSlQb2R7YuzN210Xfii43yAgtncz4CUZRcxPL7AD4mUg7dSMu0RMVKIQKsecwhNfh7bgy1zFDGMpOP8DQJ8tJfQiut5u+0yAGM4O31FJ+F7/1pvR0pgr7/O0/4K+BdhdRWNVine335u6lg==";
-    // Public encryption key base64 encoded and decrypted with self encryption key
-    const PUBLIC_ENCRYPTION_KEY: &str = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAgcEdJDDvEzAC92N0dKIvgGIh9ddJ4xccDm5QqdsdnaYXygzygjfWUzdKrEkrisQIQBRJwEQd50jths5Rg46f0fowOT2gg3OTpMo0GaQLQagZoYuMiUcsuho6ig3ahsdPq21vz1tTT92rbI+l7477tsG7y+w5jDbDF6kvKfLYs8Ga73Jbwm55yg3ibNJjsiLGa6bg+5Y9pxXxzggURKn+m5h77PDCgCiTd7zLb4L9vsRm6ijdpnuekVGIgqGZO6xUOEYOonmqDjlw8BQagu31Z5NlvhWoCQv1UUPaDOm34R2uUeWt1PWe/AUih02c3GdtIcUyqK8E1GkCHfhFD27CtwIDAQAB";
-    // Symmetric key that has been base64 encoded
-    const SYMMETRIC_KEY: &str = "84ttmDzh94OR7P6nCR/p98ZZwXkp40og8avLgX4R3fs=";
 
     #[test]
     fn decode_self_encryption_key_test() {
