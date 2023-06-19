@@ -30,8 +30,10 @@ fn main() {
     let contact = AtSign::new(contact);
 
     // Create the AtClient object
-    let mut at_client = AtClient::init(secrets, AtSign::new(host)).expect("Failed to init");
+    let mut at_client = AtClient::init(secrets, AtSign::new(host), "test").expect("Failed to init");
 
     // Read the data using the AtClient
-    at_client.read_data(contact).expect("Failed to send data");
+    at_client
+        .read_data(contact, "demo")
+        .expect("Failed to send data");
 }

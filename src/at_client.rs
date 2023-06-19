@@ -19,10 +19,11 @@ pub struct AtClient {
     secrets: AtSecrets,
     at_sign: AtSign,
     tls_client: TLSClient,
+    namespace: String,
 }
 
 impl AtClient {
-    pub fn init(secrets: AtSecrets, at_sign: AtSign) -> Result<AtClient> {
+    pub fn init(secrets: AtSecrets, at_sign: AtSign, namespace: &str) -> Result<AtClient> {
         let server = get_at_sign_server_addr(&at_sign.get_at_sign())?;
         let tls_client = match TLSClient::new(&server) {
             Ok(res) => res,
@@ -32,10 +33,11 @@ impl AtClient {
             secrets,
             at_sign,
             tls_client,
+            namespace: namespace.to_string(),
         })
     }
 
-    pub fn send_data(&mut self, data: &str, receiver: AtSign) -> Result<()> {
+    pub fn send_data(&mut self, data: &str, receiver: AtSign, record_id: &str) -> Result<()> {
         self.authenticate_with_at_server()?;
         let response = LlookupVerb::execute(
             &mut self.tls_client,
@@ -106,9 +108,9 @@ impl AtClient {
             UpdateVerbInputs::new(
                 &self.at_sign,
                 // TODO: Pass this in as an option somewhere
-                "data_doug",
+                &record_id,
                 &encrypted_data_to_send,
-                Some("doug"),
+                Some(&self.namespace),
                 None,
                 Some(&receiver),
             ),
@@ -116,13 +118,13 @@ impl AtClient {
         Ok(())
     }
 
-    pub fn read_data(&mut self, from: AtSign) -> Result<()> {
+    pub fn read_data(&mut self, from: AtSign, record_id: &str) -> Result<()> {
         self.authenticate_with_at_server()?;
         info!("Fetching data");
         // Fetch data
         let response = LookupVerb::execute(
             &mut self.tls_client,
-            LookupVerbInputs::new(&from, "data_doug", Some("doug")),
+            LookupVerbInputs::new(&from, record_id, Some(&self.namespace)),
         )?;
         let encrypted_and_encoded_data = response.split(":").collect::<Vec<_>>()[1];
         info!("Fetching symmetric key");
