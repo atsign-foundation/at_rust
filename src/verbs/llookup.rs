@@ -34,11 +34,6 @@ impl<'a> Verb<'a> for LlookupVerb {
     type Result = String;
 
     fn execute(tls_client: &mut TLSClient, input: Self::Inputs) -> Result<Self::Result> {
-        println!(
-            "Looking up local copy of {} {}",
-            &input.to_at_sign.get_at_sign(),
-            &input.at_id
-        );
         tls_client.send(format!(
             "llookup:{}.{}@{}\n",
             input.at_id,
@@ -46,7 +41,6 @@ impl<'a> Verb<'a> for LlookupVerb {
             input.from_at_sign.get_at_sign()
         ))?;
         let response = tls_client.read_line()?;
-        println!("llookup response: {:?}", response);
         Ok(response)
     }
 }

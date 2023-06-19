@@ -1,14 +1,10 @@
-// What does the API for this look like?
-// I probably want to include the traits for reader, writer, buff reader, buff writer
-// I also probably want to include a trait as for the API itself
-
 use std::{
     error::Error,
     io::{BufRead, BufReader, Write},
     net::TcpStream,
-    println,
 };
 
+use log::info;
 use native_tls::{TlsConnector, TlsStream};
 
 use crate::at_server_addr::AtServerAddr;
@@ -22,10 +18,12 @@ impl TLSClient {
         let connector = TlsConnector::new()?;
         let stream = TcpStream::connect(&at_server_addr)?;
         let stream = connector.connect(&at_server_addr.host, stream)?;
+        info!("Connected to {:?}", &at_server_addr);
         Ok(TLSClient { stream })
     }
 
     pub fn send(&mut self, data: String) -> std::io::Result<()> {
+        info!("Sending: {}", data.trim());
         self.stream.write_all(data.as_bytes())
     }
 
@@ -34,11 +32,13 @@ impl TLSClient {
         let mut res = vec![];
         let mut reader = BufReader::new(&mut self.stream);
         reader.read_until(b'\n', &mut res)?;
-        Ok(String::from_utf8_lossy(&res).trim().to_owned())
+        let data = String::from_utf8_lossy(&res).trim().to_owned();
+        info!("Received: {}", data);
+        Ok(data)
     }
 
     pub fn close(&mut self) -> std::io::Result<()> {
-        println!("Closing connection");
+        info!("Closing connection");
         self.stream.shutdown()
     }
 }

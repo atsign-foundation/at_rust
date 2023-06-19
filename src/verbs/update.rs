@@ -1,3 +1,5 @@
+use log::info;
+
 use super::{prelude::*, Verb};
 
 pub struct UpdateVerbInputs<'a> {
@@ -42,7 +44,6 @@ impl<'a> Verb<'a> for UpdateVerb {
     type Result = ();
 
     fn execute(tls_client: &mut TLSClient, input: Self::Inputs) -> Result<Self::Result> {
-        println!("Update data: {}", &input.data);
         let mut send_string = String::from("update");
         if let Some(ttr) = input.ttr {
             send_string.push_str(&format!(":ttr:{}", ttr));
@@ -56,11 +57,9 @@ impl<'a> Verb<'a> for UpdateVerb {
         }
         send_string.push_str(&format!("@{}", input.from_at_sign.get_at_sign()));
         send_string.push_str(&format!(" {}\n", input.data));
-        println!("update string: {}", send_string);
         tls_client.send(send_string)?;
         let response = tls_client.read_line()?;
         // TODO: Check response is formatted like "data: <data>" and return Error if not.
-        println!("update response: {:?}", response);
         Ok(())
     }
 }

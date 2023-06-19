@@ -20,10 +20,6 @@ impl<'a> Verb<'a> for PlookupVerb {
     type Result = String;
 
     fn execute(tls_client: &mut TLSClient, input: Self::Inputs) -> Result<Self::Result> {
-        println!(
-            "Starting public lookup of {} for {}",
-            input.at_id, input.to_at_sign
-        );
         let send_data = format!(
             "plookup:{}@{}\n",
             input.at_id,
@@ -31,7 +27,6 @@ impl<'a> Verb<'a> for PlookupVerb {
         );
         tls_client.send(send_data)?;
         let response = tls_client.read_line()?;
-        println!("plookup response: {:?}", response);
         let (_, data) = response.split_at(5);
 
         Ok(data.to_owned())

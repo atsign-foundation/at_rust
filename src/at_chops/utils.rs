@@ -81,7 +81,6 @@ pub fn decrypt_symm_key_with_private_key(private_key: &RsaPrivateKey, symm_key: 
     let decrypted_symmetric_key = private_key
         .decrypt(Pkcs1v15Encrypt, symm_key)
         .expect("Failed to decrypt symmetric key");
-    println!("Decrypted symmetric key: {:?}", decrypted_symmetric_key);
     base64_encode(&decrypted_symmetric_key)
 }
 

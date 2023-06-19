@@ -5,7 +5,10 @@ use std::env;
 use std::fs::File;
 use std::io::Read;
 
+extern crate env_logger;
+
 fn main() {
+    env_logger::init();
     // Parse the arguments
     let args: Vec<String> = env::args().collect();
     // The location of the file containing the secrets
@@ -21,7 +24,7 @@ fn main() {
     file.read_to_string(&mut contents).unwrap();
 
     // Create the secrets object from the file
-    let secrets = AtSecrets::from_file(&contents);
+    let secrets = AtSecrets::from_file(&contents).expect("Failed to create secrets");
 
     // Create the AtSign object for the sender
     let contact = AtSign::new(contact);

@@ -42,7 +42,6 @@ pub fn sign_challenge(challenge: &str, decrypted_private_key: &str) -> String {
 /// Cut a new symmetric key to be used when interacting with a new AtSign.
 pub fn create_new_shared_symmetric_key() -> String {
     let key = create_new_aes_key();
-    println!("New symmetric key: {:?}", key);
     base64_encode(&key)
 }
 
@@ -78,22 +77,8 @@ pub fn encrypt_data_with_shared_symmetric_key(encoded_symmetric_key: &str, data:
     base64_encode(&encrypted_data)
 }
 
-/// Decrypt the symmetric key with "our" private key.
-pub fn decrypt_symmetric_key_2(
-    encrypted_symmetric_key: &str,
-    decrypted_private_key: &str,
-) -> String {
-    let decoded_private_key = base64_decode(&decrypted_private_key);
-    let rsa_private_key = construct_rsa_private_key(&decoded_private_key);
-    let decoded_symmetric_key = base64_decode(&encrypted_symmetric_key);
-    let decrypted_symmetric_key =
-        decrypt_symm_key_with_private_key(&rsa_private_key, &decoded_symmetric_key);
-    decrypted_symmetric_key
-}
-
 pub fn decrypt_data_with_shared_symmetric_key(encoded_symmetric_key: &str, data: &str) -> String {
     let decoded_symmetric_key = base64_decode(&encoded_symmetric_key);
-    println!("decoded_symmetric_key: {:?}", decoded_symmetric_key);
     let iv: [u8; 16] = [0x00; 16];
     let mut cypher = construct_aes_key(&decoded_symmetric_key, &iv);
     // let mut encrypted_data = decrypt_data_with_aes_key(&mut cypher, &data.as_bytes());

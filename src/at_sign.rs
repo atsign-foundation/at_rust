@@ -2,18 +2,22 @@ use std::fmt::Display;
 
 #[derive(Debug)]
 pub struct AtSign {
+    /// The AtSign of the client device. Without the `@` prefix.
     at_sign: String,
 }
 
 impl AtSign {
+    /// Create a new AtSign. `at_sign` should be a string without the `@` prefix.
     pub fn new(at_sign: String) -> AtSign {
         AtSign { at_sign }
     }
 
+    /// Get the name of the AtSign without the `@` prefix.
     pub fn get_at_sign(&self) -> String {
         self.at_sign.to_owned()
     }
 
+    /// Get the name of the AtSign with the `@` prefix.
     pub fn get_at_sign_with_prefix(&self) -> String {
         format!("@{}", self.at_sign)
     }
