@@ -27,7 +27,11 @@ describe. The atsign-foundation GitHub organization's conventions and configurat
 
 
 ### Prerequisites
+The following need to be installed:
 - `rust` - [Installation instructions](https://doc.rust-lang.org/book/ch01-01-installation.html)
+- `openssl`
+- `libssl-dev`
+- `pkg-config`
 
 ### GitHub Repository Clone
 

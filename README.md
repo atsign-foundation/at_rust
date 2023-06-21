@@ -6,7 +6,11 @@ This repo contains libraries, tools, samples and examples for developers who wis
 It currently has limited functionality with minimal tests.
 
 ## Requirements
+The following need to be installed:
 - `rust` - [Installation instructions](https://doc.rust-lang.org/book/ch01-01-installation.html)
+- `openssl`
+- `libssl-dev`
+- `pkg-config`
 
 ## Run examples
 ### Send data
