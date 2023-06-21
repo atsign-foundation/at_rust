@@ -40,7 +40,7 @@ RUST_LOG=info cargo run --example fetch_data_example ~/.atsign/keys/@virgogigant
 - `at_chops` (Cryptographic and Hashing Operations (CHOPS))
     - `utils.rs` - Contains the generic, low level crypto operations
     - `at_chops.rs` - Contains the specific combination of crypto operations that the client and verbs can use
-- `verbs` - Contains a trait that all verbs have to implement. Verbs execute the at protocol verbs by taking in arguments from the client.
+- `verbs` - Contains a trait that all verbs have to implement. Verbs execute the atProtocol verbs by taking in arguments from the client.
 
 ## Logging
 This library uses the `log` crate. This means implementors of this library can use something like `env_logger` and get info from the library.

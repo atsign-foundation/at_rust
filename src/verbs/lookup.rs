@@ -1,7 +1,7 @@
 use super::{prelude::*, Verb};
 
 pub struct LookupVerbInputs<'a> {
-    /// The AtSign of the person who owns the key-value pair.
+    /// The atSign of the person who owns the key-value pair.
     pub to_at_sign: &'a AtSign,
     /// The identifier of the key-value pair to be looked up.
     pub at_id: &'a str,

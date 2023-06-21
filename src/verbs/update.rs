@@ -1,7 +1,7 @@
 use super::{prelude::*, Verb};
 
 pub struct UpdateVerbInputs<'a> {
-    /// The AtSign of the person who is looking up the key-value pair.
+    /// The atSign of the person who is looking up the key-value pair.
     pub from_at_sign: &'a AtSign,
     /// The identifier of the key-value pair to be looked up.
     pub at_id: &'a str,
@@ -11,7 +11,7 @@ pub struct UpdateVerbInputs<'a> {
     pub namespace: Option<&'a str>,
     /// Time to refresh
     pub ttr: Option<usize>,
-    /// Recipient's AtSign
+    /// Recipient's atSign
     pub to_at_sign: Option<&'a AtSign>,
 }
 

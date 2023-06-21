@@ -39,7 +39,7 @@ pub fn sign_challenge(challenge: &str, decrypted_private_key: &str) -> String {
     rsa_sign(rsa_private_key, &challenge.as_bytes())
 }
 
-/// Cut a new symmetric key to be used when interacting with a new AtSign.
+/// Cut a new symmetric key to be used when interacting with a new atSign.
 pub fn create_new_shared_symmetric_key() -> String {
     let key = create_new_aes_key();
     base64_encode(&key)

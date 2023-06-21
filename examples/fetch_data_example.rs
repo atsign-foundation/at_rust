@@ -13,9 +13,9 @@ fn main() {
     let args: Vec<String> = env::args().collect();
     // The location of the file containing the secrets
     let file_path = args[1].clone();
-    // The AtSign of the client device
+    // The atSign of the client device
     let host = args[2].clone();
-    // The AtSign of the sender of the data
+    // The atSign of the sender of the data
     let contact = args[3].clone();
 
     // Read the contents of the file into a string.
@@ -26,7 +26,7 @@ fn main() {
     // Create the secrets object from the file
     let secrets = AtSecrets::from_file(&contents).expect("Failed to create secrets");
 
-    // Create the AtSign object for the sender
+    // Create the atSign object for the sender
     let contact = AtSign::new(contact);
 
     // Create the AtClient object

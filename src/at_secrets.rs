@@ -31,7 +31,7 @@ impl AtSecrets {
     }
 
     /// Create AtSecrets from a JSON string which is found inside the `.atKeys` file associated
-    /// with all AtSign accounts.
+    /// with all atSign accounts.
     pub fn from_file(input: &str) -> Result<AtSecrets> {
         // Get the info from the file
         let v: Value = from_str(input).unwrap();
