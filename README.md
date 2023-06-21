@@ -48,3 +48,12 @@ This library uses the `log` crate. This means implementors of this library can u
 ## Contributions welcome!
 
 All of our software is open with intent. We welcome contributions - we want pull requests, and we want to hear about issues. See also [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Steps to Beta
+- [ ] Notifications using the `monitor` verb
+- [ ] Interoperability with other SDKs
+
+## Future goals
+- [ ] `no_std` implementation
+- [ ] Distribute to `crates.io`
+- [ ] Support for `async` runtime
