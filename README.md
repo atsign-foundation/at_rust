@@ -1,73 +1,59 @@
 <img width=250px src="https://atsign.dev/assets/img/atPlatform_logo_gray.svg?sanitize=true">
 
-# Sample README
+# Rust SDK - (⚠️Alpha version⚠️)
+This repo contains libraries, tools, samples and examples for developers who wish to work with the atPlatform from Rust code.
 
-Open with intent - we welcome contributions - we want pull requests and to hear about issues.
+It currently has limited functionality with minimal tests.
 
-## Who is this for?
+## Requirements
+The following need to be installed:
+- `rust` - [Installation instructions](https://doc.rust-lang.org/book/ch01-01-installation.html)
+- `openssl`
+- `libssl-dev`
+- `pkg-config`
 
-The README should be addressed to somebody who's never seen this before.
-But also don't assume that they're a novice.
+## Run examples
+### Send data
+Send data to an atSign - `cargo run --example send_data_example <path-to-at-keys> <message> <atSign-of-sender> <atSign-of-receiver>`
+- `path-to-at-keys` - Absolute path to the `.atKeys` of the sender
+- `message` - Text data to send to receiver
+- `atSign-of-sender` - The name of the atSign (without `@`) who is sending the data
+- `atSign-of-receiver` - The name of the atSign (without `@`) who is receiving the data
+#### E.g.
+```sh 
+RUST_LOG=info cargo run --example send_data_example ~/.atsign/keys/@aliens12_key.atKeys hello_there aliens12 virgogigantic64
+```
 
-### Code user
+### Fetch data
+Fetch data from an atSign - `cargo run --example fetch_data_example <path-to-at-keys> <atSign-of-receiver> <atSign-of-sender>`
+- `path-to-at-keys` - Absolute path to the `.atKeys` of the receiver
+- `atSign-of-receiver` - The name of the atSign (without `@`) who is receiving the data
+- `atSign-of-sender` - The name of the atSign (without `@`) who is sending the data
+#### E.g.
+```sh 
+RUST_LOG=info cargo run --example fetch_data_example ~/.atsign/keys/@virgogigantic64_key.atKeys virgogigantic64 aliens12
+```
 
-Does this repo publish to [pub.dev](https://pub.dev) or similar?
-In which case the code user just needs a pointer there - e.g. [at_client on pub.dev](https://pub.dev/packages/at_client)
+## Structure
+- `at_client` - What consumers of the library will mostly interact with
+- `at_secrets` - Struct for constructing secrets from a file
+- `at_chops` (Cryptographic and Hashing Operations (CHOPS))
+    - `utils.rs` - Contains the generic, low level crypto operations
+    - `at_chops.rs` - Contains the specific combination of crypto operations that the client and verbs can use
+- `verbs` - Contains a trait that all verbs have to implement. Verbs execute the atProtocol verbs by taking in arguments from the client.
 
-### Contributor
+## Logging
+This library uses the `log` crate. This means implementors of this library can use something like `env_logger` and get info from the library.
 
-This is the person who we want working with us here.
-[CONTRIBUTING.md](CONTRIBUTING.md) is going to have the detailed guidance on how to setup their tools,
-tests and how to make a pull request.
+## Contributions welcome!
 
-## Why, What, How?
+All of our software is open with intent. We welcome contributions - we want pull requests, and we want to hear about issues. See also [CONTRIBUTING.md](CONTRIBUTING.md).
 
-### Why?
+## Steps to Beta
+- [ ] Notifications using the `monitor` verb
+- [ ] Interoperability with other SDKs
 
-What is the purpose of this project?
-
-### What?
-
-What is needed to get the project and its dependencies installed?
-
-### How?
-
-How does this work? How is this used to fulfil its intended purpose?
-
-## Checklist
-
-### Writing
-
-Does the writing flow, with proper grammar and correct spelling?
-
-### Links
-
-Are the links to external resources correct?
-Are the links to other parts of the project correct
-(beware stuff carried over from previous repos where the
-project might have lived during earlier development)?
-
-### Description
-
-Has the Description field been filled out?
-
-### Acknowledgement/Attribution
-
-Have we correctly acknowledged the work of others (and their Trademarks etc.)
-where appropriate (per the conditions of their LICENSE?
-
-### LICENSE
-
-Which LICENSE are we using?  
-Is the LICENSE(.md) file present?  
-Does it have the correct dates, legal entities etc.?
-
-## Maintainers
-
-Who created this?  
-
-Do they have complete GitHub profiles?  
-
-How can they be contacted?  
-
-Who is going to respond to pull requests?  
+## Future goals
+- [ ] `no_std` implementation
+- [ ] Distribute to `crates.io`
+- [ ] Support for `async` runtime
