@@ -1,7 +1,7 @@
 use crate::at_chops::at_chops::{decode_self_encryption_key, decrypt_private_key};
 use crate::at_error::Result;
 use log::info;
-use serde_json::{from_str, Value};
+use serde_json::{from_str, from_value, Value};
 
 /// Struct to store all the secrets associated with an AtSign account.
 #[derive(Debug)]
@@ -45,6 +45,23 @@ impl AtSecrets {
         let aes_encrypt_private_key = v["aesEncryptPrivateKey"].as_str().unwrap().to_owned();
         let aes_self_encrypt_key = v["selfEncryptionKey"].as_str().unwrap().to_owned();
 
+        AtSecrets::from_values(
+            &aes_pkam_public_key,
+            &aes_pkam_private_key,
+            &aes_encrypt_public_key,
+            &aes_encrypt_private_key,
+            &aes_self_encrypt_key,
+        )
+    }
+
+    /// Create AtSecrets from the values of the keys found inside the `.ateys` file.
+    pub fn from_values(
+        aes_pkam_public_key: &str,
+        aes_pkam_private_key: &str,
+        aes_encrypt_public_key: &str,
+        aes_encrypt_private_key: &str,
+        aes_self_encrypt_key: &str,
+    ) -> Result<AtSecrets> {
         info!("Decoding keys");
         // Decode the self encrypt key from base64
         let decoded_self_encrypted_key = decode_self_encryption_key(&aes_self_encrypt_key);
@@ -66,7 +83,7 @@ impl AtSecrets {
             pkam_private_key,
             encrypt_public_key,
             encrypt_private_key,
-            aes_self_encrypt_key,
+            aes_self_encrypt_key.to_owned(),
         ))
     }
 }
