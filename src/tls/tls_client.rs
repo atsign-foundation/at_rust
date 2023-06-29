@@ -10,8 +10,8 @@ pub struct TlsClient {
 }
 
 impl TlsClient {
-    pub fn new(connect: &dyn Fn() -> Box<dyn ReadWrite>) -> std::io::Result<Box<TlsClient>> {
-        Ok(Box::new(TlsClient { stream: connect() }))
+    pub fn new(connect: &dyn Fn() -> Box<dyn ReadWrite>) -> std::io::Result<TlsClient> {
+        Ok(TlsClient { stream: connect() })
     }
 
     pub fn send(&mut self, data: String) -> std::io::Result<()> {

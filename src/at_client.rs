@@ -17,7 +17,7 @@ use crate::verbs::{from::FromVerb, from::FromVerbInputs, Verb};
 pub struct AtClient {
     secrets: AtSecrets,
     at_sign: AtSign,
-    tls_client: Box<TlsClient>,
+    tls_client: TlsClient,
     namespace: String,
 }
 
