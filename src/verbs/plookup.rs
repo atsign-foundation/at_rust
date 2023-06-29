@@ -19,7 +19,7 @@ impl<'a> Verb<'a> for PlookupVerb {
     type Inputs = PlookupVerbInputs<'a>;
     type Result = String;
 
-    fn execute(tls_client: &mut TLSClient, input: Self::Inputs) -> Result<Self::Result> {
+    fn execute(tls_client: &mut TlsClient, input: Self::Inputs) -> Result<Self::Result> {
         let send_data = format!(
             "plookup:{}@{}\n",
             input.at_id,

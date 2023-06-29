@@ -33,7 +33,7 @@ impl<'a> Verb<'a> for LlookupVerb {
     type Inputs = LlookupVerbInputs<'a>;
     type Result = String;
 
-    fn execute(tls_client: &mut TLSClient, input: Self::Inputs) -> Result<Self::Result> {
+    fn execute(tls_client: &mut TlsClient, input: Self::Inputs) -> Result<Self::Result> {
         tls_client.send(format!(
             "llookup:{}.{}@{}\n",
             input.at_id,

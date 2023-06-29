@@ -6,9 +6,8 @@ use crate::at_chops::at_chops::{
 };
 use crate::at_error::{AtError, Result};
 use crate::at_secrets::AtSecrets;
-use crate::at_server_addr::AtServerAddr;
 use crate::at_sign::AtSign;
-use crate::at_tls_client::TLSClient;
+use crate::tls::tls_client::{ReadWrite, TlsClient};
 use crate::verbs::llookup::{LlookupVerb, LlookupVerbInputs};
 use crate::verbs::lookup::{LookupVerb, LookupVerbInputs};
 use crate::verbs::plookup::{PlookupVerb, PlookupVerbInputs};
@@ -18,17 +17,19 @@ use crate::verbs::{from::FromVerb, from::FromVerbInputs, Verb};
 pub struct AtClient {
     secrets: AtSecrets,
     at_sign: AtSign,
-    tls_client: TLSClient,
+    tls_client: Box<TlsClient>,
     namespace: String,
 }
 
 impl AtClient {
-    pub fn init(secrets: AtSecrets, at_sign: AtSign, namespace: &str) -> Result<AtClient> {
-        let server = get_at_sign_server_addr(&at_sign.get_at_sign())?;
-        let tls_client = match TLSClient::new(&server) {
-            Ok(res) => res,
-            Err(err) => return Err(AtError::new(err.to_string())),
-        };
+    pub fn init(
+        secrets: AtSecrets,
+        at_sign: AtSign,
+        connect: &dyn Fn(&str) -> Box<dyn ReadWrite>,
+        namespace: &str,
+    ) -> Result<AtClient> {
+        let server = get_at_sign_server_addr(&at_sign.get_at_sign(), connect)?;
+        let tls_client = TlsClient::new(&|| connect(&server))?;
         Ok(AtClient {
             secrets,
             at_sign,
@@ -160,18 +161,16 @@ impl AtClient {
 }
 
 /// function to get the at sign server address
-fn get_at_sign_server_addr(at_sign: &str) -> Result<AtServerAddr> {
+fn get_at_sign_server_addr(
+    at_sign: &str,
+    connect: &dyn Fn(&str) -> Box<dyn ReadWrite>,
+) -> Result<String> {
     info!("Getting at sign server address");
 
-    let at_server_addr = AtServerAddr::new(String::from("root.atsign.org"), 64);
-    let mut tls_client = match TLSClient::new(&at_server_addr) {
-        Ok(res) => res,
-        Err(_) => return Err(AtError::new(String::from("Unable to connect to at server"))),
-    };
-
+    let address = "root.atsign.org:64";
+    let mut tls_client = TlsClient::new(&|| connect(&address))?;
     tls_client.send(format!("{}\n", at_sign))?;
     let res = tls_client.read_line()?;
-    tls_client.close()?;
 
     if res == "@null" {
         return Err(AtError::new(String::from("Unable to find at sign")));
@@ -181,12 +180,12 @@ fn get_at_sign_server_addr(at_sign: &str) -> Result<AtServerAddr> {
     let addr = res[1..].to_string();
     info!("At server address: {}", &addr);
 
+    Ok(addr)
     // Trimming to remove the newline character
-    let addr = addr.trim();
-    let addr = addr.split(":").collect::<Vec<_>>();
-    let host = addr[0].to_string();
-    let port = addr[1]
-        .parse::<u16>()
-        .expect("Unable to parse port to a u16");
-    Ok(AtServerAddr::new(host, port))
+    // let addr = addr.trim();
+    // let addr = addr.split(":").collect::<Vec<_>>();
+    // let host = addr[0].to_string();
+    // let port = addr[1]
+    //     .parse::<u16>()
+    //     .expect("Unable to parse port to a u16");
 }

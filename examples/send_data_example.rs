@@ -1,9 +1,12 @@
 use at_rust::at_client::AtClient;
 use at_rust::at_secrets::AtSecrets;
 use at_rust::at_sign::AtSign;
+use at_rust::tls::tls_client::ReadWrite;
+use native_tls::TlsConnector;
 use std::env;
 use std::fs::File;
 use std::io::Read;
+use std::net::TcpStream;
 extern crate env_logger;
 
 fn main() {
@@ -30,8 +33,17 @@ fn main() {
     // Create the atSign object for the contact
     let contact = AtSign::new(contact);
 
+    fn create_tls_connection(addr: &str) -> Box<dyn ReadWrite> {
+        let stream = TcpStream::connect(addr).unwrap();
+        let connector = TlsConnector::new().unwrap();
+        let host = addr.split(':').collect::<Vec<&str>>()[0];
+        let stream = connector.connect(&host, stream).unwrap();
+        Box::new(stream)
+    }
+
     // Create the AtClient object
-    let mut at_client = AtClient::init(secrets, AtSign::new(host), "test").expect("Failed to init");
+    let mut at_client = AtClient::init(secrets, AtSign::new(host), &create_tls_connection, "test")
+        .expect("Failed to init");
 
     // Send the data using the AtClient
     at_client
