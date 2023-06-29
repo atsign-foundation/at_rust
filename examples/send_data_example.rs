@@ -7,7 +7,9 @@ use std::env;
 use std::fs::File;
 use std::io::Read;
 use std::net::TcpStream;
+
 extern crate env_logger;
+extern crate native_tls;
 
 fn main() {
     env_logger::init();
