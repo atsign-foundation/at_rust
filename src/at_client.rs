@@ -6,6 +6,7 @@ use crate::at_chops::at_chops::{
 };
 use crate::at_error::{AtError, Result};
 use crate::at_secrets::AtSecrets;
+use crate::at_server_addr::AtServerAddr;
 use crate::at_sign::AtSign;
 use crate::tls::tls_client::{ReadWrite, TlsClient};
 use crate::verbs::llookup::{LlookupVerb, LlookupVerbInputs};
@@ -25,7 +26,7 @@ impl AtClient {
     pub fn init(
         secrets: AtSecrets,
         at_sign: AtSign,
-        connect: &dyn Fn(&str) -> Box<dyn ReadWrite>,
+        connect: &dyn Fn(&AtServerAddr) -> Box<dyn ReadWrite>,
         namespace: &str,
     ) -> Result<AtClient> {
         let server = get_at_sign_server_addr(&at_sign.get_at_sign(), connect)?;
@@ -163,12 +164,12 @@ impl AtClient {
 /// function to get the at sign server address
 fn get_at_sign_server_addr(
     at_sign: &str,
-    connect: &dyn Fn(&str) -> Box<dyn ReadWrite>,
-) -> Result<String> {
+    connect: &dyn Fn(&AtServerAddr) -> Box<dyn ReadWrite>,
+) -> Result<AtServerAddr> {
     info!("Getting at sign server address");
 
-    let address = "root.atsign.org:64";
-    let mut tls_client = TlsClient::new(&|| connect(&address))?;
+    let at_server_addr = AtServerAddr::new(String::from("root.atsign.org"), 64);
+    let mut tls_client = TlsClient::new(&|| connect(&at_server_addr))?;
     tls_client.send(format!("{}\n", at_sign))?;
     let res = tls_client.read_line()?;
 
@@ -180,12 +181,12 @@ fn get_at_sign_server_addr(
     let addr = res[1..].to_string();
     info!("At server address: {}", &addr);
 
-    Ok(addr)
     // Trimming to remove the newline character
-    // let addr = addr.trim();
-    // let addr = addr.split(":").collect::<Vec<_>>();
-    // let host = addr[0].to_string();
-    // let port = addr[1]
-    //     .parse::<u16>()
-    //     .expect("Unable to parse port to a u16");
+    let addr = addr.trim();
+    let addr = addr.split(":").collect::<Vec<_>>();
+    let host = addr[0].to_string();
+    let port = addr[1]
+        .parse::<u16>()
+        .expect("Unable to parse port to a u16");
+    Ok(AtServerAddr::new(host, port))
 }

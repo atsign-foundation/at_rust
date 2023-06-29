@@ -1,5 +1,6 @@
 use at_rust::at_client::AtClient;
 use at_rust::at_secrets::AtSecrets;
+use at_rust::at_server_addr::AtServerAddr;
 use at_rust::at_sign::AtSign;
 use at_rust::tls::tls_client::ReadWrite;
 use native_tls::TlsConnector;
@@ -33,11 +34,10 @@ fn main() {
     // Create the atSign object for the sender
     let contact = AtSign::new(contact);
 
-    fn create_tls_connection(addr: &str) -> Box<dyn ReadWrite> {
+    fn create_tls_connection(addr: &AtServerAddr) -> Box<dyn ReadWrite> {
         let stream = TcpStream::connect(addr).unwrap();
         let connector = TlsConnector::new().unwrap();
-        let host = addr.split(':').collect::<Vec<&str>>()[0];
-        let stream = connector.connect(&host, stream).unwrap();
+        let stream = connector.connect(&addr.host, stream).unwrap();
         Box::new(stream)
     }
 
