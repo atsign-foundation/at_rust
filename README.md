@@ -57,3 +57,4 @@ All of our software is open with intent. We welcome contributions - we want pull
 - [ ] `no_std` implementation
 - [ ] Distribute to `crates.io`
 - [ ] Support for `async` runtime
+- [ ] Add default implementations for TLS connection on multiple platforms (ESP32, Linux, Pico W)
