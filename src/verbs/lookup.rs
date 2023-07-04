@@ -25,7 +25,7 @@ impl<'a> Verb<'a> for LookupVerb {
     type Inputs = LookupVerbInputs<'a>;
     type Result = String;
 
-    fn execute(tls_client: &mut TLSClient, input: Self::Inputs) -> Result<Self::Result> {
+    fn execute(tls_client: &mut TlsClient, input: Self::Inputs) -> Result<Self::Result> {
         let mut send_string = String::from("lookup");
         send_string.push_str(&format!(":{}", input.at_id));
         if let Some(namespace) = input.namespace {

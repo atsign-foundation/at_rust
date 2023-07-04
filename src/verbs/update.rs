@@ -41,7 +41,7 @@ impl<'a> Verb<'a> for UpdateVerb {
     type Inputs = UpdateVerbInputs<'a>;
     type Result = ();
 
-    fn execute(tls_client: &mut TLSClient, input: Self::Inputs) -> Result<Self::Result> {
+    fn execute(tls_client: &mut TlsClient, input: Self::Inputs) -> Result<Self::Result> {
         let mut send_string = String::from("update");
         if let Some(ttr) = input.ttr {
             send_string.push_str(&format!(":ttr:{}", ttr));

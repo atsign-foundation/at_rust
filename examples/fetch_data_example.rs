@@ -1,11 +1,16 @@
 use at_rust::at_client::AtClient;
 use at_rust::at_secrets::AtSecrets;
+use at_rust::at_server_addr::AtServerAddr;
 use at_rust::at_sign::AtSign;
+use at_rust::tls::tls_client::ReadWrite;
+use native_tls::TlsConnector;
 use std::env;
 use std::fs::File;
 use std::io::Read;
+use std::net::TcpStream;
 
 extern crate env_logger;
+extern crate native_tls;
 
 fn main() {
     env_logger::init();
@@ -29,8 +34,16 @@ fn main() {
     // Create the atSign object for the sender
     let contact = AtSign::new(contact);
 
+    fn create_tls_connection(addr: &AtServerAddr) -> Box<dyn ReadWrite> {
+        let stream = TcpStream::connect(addr).unwrap();
+        let connector = TlsConnector::new().unwrap();
+        let stream = connector.connect(&addr.host, stream).unwrap();
+        Box::new(stream)
+    }
+
     // Create the AtClient object
-    let mut at_client = AtClient::init(secrets, AtSign::new(host), "test").expect("Failed to init");
+    let mut at_client = AtClient::init(secrets, AtSign::new(host), &create_tls_connection, "test")
+        .expect("Failed to init");
 
     // Read the data using the AtClient
     at_client

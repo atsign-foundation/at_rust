@@ -21,7 +21,7 @@ impl<'a> Verb<'a> for FromVerb {
     type Inputs = FromVerbInputs<'a>;
     type Result = String;
 
-    fn execute(tls_client: &mut TLSClient, input: Self::Inputs) -> Result<Self::Result> {
+    fn execute(tls_client: &mut TlsClient, input: Self::Inputs) -> Result<Self::Result> {
         info!("Starting PKAM authentication");
         tls_client.send(format!("from:{}\n", input.at_sign.get_at_sign()))?;
         let response = tls_client.read_line()?;
