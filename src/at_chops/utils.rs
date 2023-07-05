@@ -82,7 +82,7 @@ pub fn decrypt_symm_key_with_private_key(private_key: &RsaPrivateKey, symm_key: 
     let decrypted_symmetric_key = private_key
         .decrypt(Pkcs1v15Encrypt, symm_key)
         .expect("Failed to decrypt symmetric key");
-    base64_encode(&decrypted_symmetric_key)
+    String::from_utf8(decrypted_symmetric_key).expect("Failed to convert decrypted key to string")
 }
 
 /// Encrypt some data using an AES key.
@@ -100,6 +100,7 @@ pub fn decrypt_data_with_aes_key(
     aes_key: &mut Box<dyn SynchronousStreamCipher>,
     data: &[u8],
 ) -> Vec<u8> {
+    // TODO: This probably requires some padding wrangling
     let mut output: Vec<u8> = vec![0; data.len()];
     aes_key.process(&data, &mut output);
     output
