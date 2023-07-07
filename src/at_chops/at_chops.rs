@@ -1,3 +1,5 @@
+use log::warn;
+
 use super::utils::{
     base64_decode, base64_encode, construct_aes_key, construct_rsa_private_key,
     construct_rsa_public_key, create_new_aes_key, decrypt_data_with_aes_key,
@@ -77,8 +79,11 @@ pub fn decrypt_data_with_shared_symmetric_key(encoded_symmetric_key: &str, data:
     let decoded_symmetric_key = base64_decode(&encoded_symmetric_key);
     let iv: [u8; 16] = [0x00; 16];
     let mut cypher = construct_aes_key(&decoded_symmetric_key, &iv);
-    let encrypted_data = decrypt_data_with_aes_key(&mut cypher, &base64_decode(&data));
-    String::from_utf8(encrypted_data).expect("Unable to convert to UTF-8")
+    let decoded_data = base64_decode(&data);
+    warn!("Encrypted data: {:?}", decoded_data);
+    let decrypted_data = decrypt_data_with_aes_key(&mut cypher, &decoded_data);
+    warn!("Decrypted data: {:?}", decrypted_data);
+    String::from_utf8(decrypted_data).expect("Unable to convert to UTF-8")
 }
 
 #[cfg(test)]
