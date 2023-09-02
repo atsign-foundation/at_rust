@@ -100,9 +100,10 @@ pub fn decrypt_data_with_aes_key(
     aes_key: &mut Box<dyn SynchronousStreamCipher>,
     data: &[u8],
 ) -> Vec<u8> {
-    // TODO: This probably requires some padding wrangling
     let mut output: Vec<u8> = vec![0; data.len()];
     aes_key.process(&data, &mut output);
+    let last = output.last().unwrap();
+    output.truncate(output.len() - usize::from(*last));
     output
 }
 

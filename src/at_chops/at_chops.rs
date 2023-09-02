@@ -1,4 +1,4 @@
-use log::warn;
+use log::{info, warn};
 
 use super::utils::{
     base64_decode, base64_encode, construct_aes_key, construct_rsa_private_key,
@@ -70,6 +70,7 @@ pub fn encrypt_data_with_shared_symmetric_key(encoded_symmetric_key: &str, data:
     let decoded_symmetric_key = base64_decode(&encoded_symmetric_key);
     let iv: [u8; 16] = [0x00; 16];
     let mut cypher = construct_aes_key(&decoded_symmetric_key, &iv);
+    // TODO: Need to pad this for Pkcs7
     let encrypted_data = encrypt_data_with_aes_key(&mut cypher, &data.as_bytes());
     base64_encode(&encrypted_data)
 }
@@ -77,12 +78,13 @@ pub fn encrypt_data_with_shared_symmetric_key(encoded_symmetric_key: &str, data:
 /// Decrypt data with an encoded AES symm key.
 pub fn decrypt_data_with_shared_symmetric_key(encoded_symmetric_key: &str, data: &str) -> String {
     let decoded_symmetric_key = base64_decode(&encoded_symmetric_key);
+    info!("Symmetric key: {:x?}", decoded_symmetric_key);
     let iv: [u8; 16] = [0x00; 16];
     let mut cypher = construct_aes_key(&decoded_symmetric_key, &iv);
     let decoded_data = base64_decode(&data);
-    warn!("Encrypted data: {:?}", decoded_data);
+    warn!("Encrypted data: {:x?}", decoded_data);
     let decrypted_data = decrypt_data_with_aes_key(&mut cypher, &decoded_data);
-    warn!("Decrypted data: {:?}", decrypted_data);
+    warn!("Decrypted data: {:x?}", decrypted_data);
     String::from_utf8(decrypted_data).expect("Unable to convert to UTF-8")
 }
 
