@@ -82,9 +82,7 @@ pub fn decrypt_data_with_shared_symmetric_key(encoded_symmetric_key: &str, data:
     let iv: [u8; 16] = [0x00; 16];
     let mut cypher = construct_aes_key(&decoded_symmetric_key, &iv);
     let decoded_data = base64_decode(&data);
-    warn!("Encrypted data: {:x?}", decoded_data);
     let decrypted_data = decrypt_data_with_aes_key(&mut cypher, &decoded_data);
-    warn!("Decrypted data: {:x?}", decrypted_data);
     String::from_utf8(decrypted_data).expect("Unable to convert to UTF-8")
 }
 
