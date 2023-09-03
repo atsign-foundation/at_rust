@@ -53,7 +53,7 @@ All of our software is open with intent. We welcome contributions - we want pull
 
 ## Steps to Beta
 - [ ] Notifications using the `monitor` verb
-- [ ] Interoperability with other SDKs
+- [x] Interoperability with other SDKs
 
 ## Future goals
 - [ ] `no_std` implementation
