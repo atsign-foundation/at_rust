@@ -1,6 +1,9 @@
+use std::iter::repeat;
+
 use crypto::{aes::KeySize, symmetriccipher::SynchronousStreamCipher};
 
 use base64::{engine::general_purpose, Engine as _};
+use log::info;
 use rsa::{
     pkcs1v15::SigningKey,
     pkcs8::{DecodePrivateKey, DecodePublicKey},
@@ -82,7 +85,7 @@ pub fn decrypt_symm_key_with_private_key(private_key: &RsaPrivateKey, symm_key: 
     let decrypted_symmetric_key = private_key
         .decrypt(Pkcs1v15Encrypt, symm_key)
         .expect("Failed to decrypt symmetric key");
-    base64_encode(&decrypted_symmetric_key)
+    String::from_utf8(decrypted_symmetric_key).expect("Failed to convert decrypted key to string")
 }
 
 /// Encrypt some data using an AES key.
@@ -90,8 +93,20 @@ pub fn encrypt_data_with_aes_key(
     aes_key: &mut Box<dyn SynchronousStreamCipher>,
     data: &[u8],
 ) -> Vec<u8> {
-    let mut output: Vec<u8> = vec![0; data.len()];
-    aes_key.process(&data, &mut output);
+    let data_len = data.len();
+    let mut padding_len = 16 - (data_len % 16);
+    if padding_len == 0 {
+        // There is always at least 1 byte of padding - https://www.ibm.com/docs/en/zos/2.4.0?topic=rules-pkcs-padding-method
+        padding_len = 16;
+    }
+    // Construct padding
+    let padding: Vec<u8> = vec![padding_len as u8; padding_len];
+    // Collect data into a mut vec so the padding can be appended
+    let mut new_data = data.to_vec();
+    new_data.extend(padding);
+    // Process
+    let mut output: Vec<u8> = vec![0; new_data.len()];
+    aes_key.process(&new_data, &mut output);
     output
 }
 
@@ -102,6 +117,9 @@ pub fn decrypt_data_with_aes_key(
 ) -> Vec<u8> {
     let mut output: Vec<u8> = vec![0; data.len()];
     aes_key.process(&data, &mut output);
+    // Remove padding due to PkCS#7 padding used by other SDKs
+    let last = output.last().unwrap();
+    output.truncate(output.len() - usize::from(*last));
     output
 }
 

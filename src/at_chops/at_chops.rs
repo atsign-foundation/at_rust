@@ -1,3 +1,5 @@
+use log::{info, warn};
+
 use super::utils::{
     base64_decode, base64_encode, construct_aes_key, construct_rsa_private_key,
     construct_rsa_public_key, create_new_aes_key, decrypt_data_with_aes_key,
@@ -49,7 +51,6 @@ pub fn create_new_shared_symmetric_key() -> String {
 pub fn decrypt_symmetric_key(encrypted_symmetric_key: &str, decrypted_private_key: &str) -> String {
     let decoded_private_key = base64_decode(&decrypted_private_key);
     let rsa_private_key = construct_rsa_private_key(&decoded_private_key);
-    // NOTE: Probs need to do the same as decrypt_symmetric_key_2
     let decoded_symmetric_key = base64_decode(&encrypted_symmetric_key);
     let decrypted_symmetric_key =
         decrypt_symm_key_with_private_key(&rsa_private_key, &decoded_symmetric_key);
@@ -60,11 +61,7 @@ pub fn decrypt_symmetric_key(encrypted_symmetric_key: &str, decrypted_private_ke
 pub fn encrypt_data_with_public_key(encoded_public_key: &str, data: &str) -> String {
     let decoded_public_key = base64_decode(&encoded_public_key);
     let rsa_public_key = construct_rsa_public_key(&decoded_public_key);
-
-    // NOTE: Not sure if I need to decode the data or pass it in as bytes.
-
-    let encrypted_data = encrypt_with_public_key(&rsa_public_key, &base64_decode(&data));
-    // let encrypted_data = encrypt_with_public_key(&rsa_public_key, &data.as_bytes());
+    let encrypted_data = encrypt_with_public_key(&rsa_public_key, &data.as_bytes());
     encrypted_data
 }
 
@@ -82,11 +79,9 @@ pub fn decrypt_data_with_shared_symmetric_key(encoded_symmetric_key: &str, data:
     let decoded_symmetric_key = base64_decode(&encoded_symmetric_key);
     let iv: [u8; 16] = [0x00; 16];
     let mut cypher = construct_aes_key(&decoded_symmetric_key, &iv);
-    // let mut encrypted_data = decrypt_data_with_aes_key(&mut cypher, &data.as_bytes());
-    let encrypted_data = decrypt_data_with_aes_key(&mut cypher, &base64_decode(&data));
-
-    // base64_encode(&encrypted_data)
-    String::from_utf8(encrypted_data).expect("Unable to convert to UTF-8")
+    let decoded_data = base64_decode(&data);
+    let decrypted_data = decrypt_data_with_aes_key(&mut cypher, &decoded_data);
+    String::from_utf8(decrypted_data).expect("Unable to convert to UTF-8")
 }
 
 #[cfg(test)]
