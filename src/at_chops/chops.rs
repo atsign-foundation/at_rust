@@ -68,7 +68,7 @@ pub fn encrypt_data_with_shared_symmetric_key(encoded_symmetric_key: &str, data:
     let decoded_symmetric_key = base64_decode(encoded_symmetric_key);
     let iv: [u8; 16] = [0x00; 16];
     let mut cypher = construct_aes_key(&decoded_symmetric_key, &iv);
-    let encrypted_data = encrypt_data_with_aes_key(&mut cypher, &data.as_bytes());
+    let encrypted_data = encrypt_data_with_aes_key(&mut cypher, data.as_bytes());
     base64_encode(&encrypted_data)
 }
 
