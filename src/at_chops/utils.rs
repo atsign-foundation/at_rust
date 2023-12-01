@@ -113,7 +113,7 @@ pub fn decrypt_data_with_aes_key(
     data: &[u8],
 ) -> Vec<u8> {
     let mut output: Vec<u8> = vec![0; data.len()];
-    aes_key.process(&data, &mut output);
+    aes_key.process(data, &mut output);
     // Remove padding due to PkCS#7 padding used by other SDKs
     let last = output.last().unwrap();
     output.truncate(output.len() - usize::from(*last));
