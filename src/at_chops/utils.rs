@@ -1,4 +1,4 @@
-use std::iter::repeat;
+//use std::iter::repeat;
 
 use crypto::{aes::KeySize, symmetriccipher::SynchronousStreamCipher};
 
