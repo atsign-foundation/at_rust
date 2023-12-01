@@ -53,7 +53,7 @@ pub fn rsa_sign(key: RsaPrivateKey, data: &[u8]) -> String {
     // Sign
     let signature = signing_key.sign_with_rng(&mut rng, data);
     verifying_key
-        .verify(&data, &signature)
+        .verify(data, &signature)
         .expect("failed to verify");
     let binding = signature.to_bytes();
     let signature_bytes = binding.as_ref();
