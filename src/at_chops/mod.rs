@@ -1,4 +1,4 @@
-pub mod at_chops;
+pub mod chops;
 mod b64_encoded_string;
 mod utils;
 

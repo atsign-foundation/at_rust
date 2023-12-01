@@ -1,6 +1,6 @@
 use log::info;
 
-use crate::at_chops::at_chops::{
+use crate::at_chops::chops::{
     create_new_shared_symmetric_key, decrypt_data_with_shared_symmetric_key, decrypt_symmetric_key,
     encrypt_data_with_public_key, encrypt_data_with_shared_symmetric_key,
 };

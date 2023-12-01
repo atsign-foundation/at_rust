@@ -1,6 +1,6 @@
 use log::info;
 
-use crate::at_chops::at_chops::sign_challenge;
+use crate::at_chops::chops::sign_challenge;
 
 use super::{prelude::*, Verb};
 

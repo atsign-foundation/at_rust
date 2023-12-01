@@ -1,4 +1,4 @@
-use crate::at_chops::at_chops::{decode_self_encryption_key, decrypt_private_key};
+use crate::at_chops::chops::{decode_self_encryption_key, decrypt_private_key};
 use crate::at_error::Result;
 use log::info;
 use serde_json::{from_str, Value};
