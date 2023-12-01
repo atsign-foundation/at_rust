@@ -36,7 +36,7 @@ pub fn decrypt_private_key(
 
 /// Sign a given challenge with the decrypted private key.
 pub fn sign_challenge(challenge: &str, decrypted_private_key: &str) -> String {
-    let decoded_private_key = base64_decode(&decrypted_private_key);
+    let decoded_private_key = base64_decode(decrypted_private_key);
     let rsa_private_key = construct_rsa_private_key(&decoded_private_key);
     rsa_sign(rsa_private_key, &challenge.as_bytes())
 }
