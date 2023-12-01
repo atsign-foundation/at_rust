@@ -41,7 +41,7 @@ pub fn construct_rsa_private_key(data: &[u8]) -> RsaPrivateKey {
 /// Construct an RSA public key from a decoded key.
 pub fn construct_rsa_public_key(data: &[u8]) -> RsaPublicKey {
     let rsa_key =
-        RsaPublicKey::from_public_key_der(&data).expect("Unable to create RSA Public Key");
+        RsaPublicKey::from_public_key_der(data).expect("Unable to create RSA Public Key");
     rsa_key
 }
 
