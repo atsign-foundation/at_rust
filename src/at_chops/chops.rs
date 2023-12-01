@@ -74,7 +74,7 @@ pub fn encrypt_data_with_shared_symmetric_key(encoded_symmetric_key: &str, data:
 
 /// Decrypt data with an encoded AES symm key.
 pub fn decrypt_data_with_shared_symmetric_key(encoded_symmetric_key: &str, data: &str) -> String {
-    let decoded_symmetric_key = base64_decode(&encoded_symmetric_key);
+    let decoded_symmetric_key = base64_decode(encoded_symmetric_key);
     let iv: [u8; 16] = [0x00; 16];
     let mut cypher = construct_aes_key(&decoded_symmetric_key, &iv);
     let decoded_data = base64_decode(&data);
