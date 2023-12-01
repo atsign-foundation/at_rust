@@ -1,3 +1,9 @@
+## v0.2.1
+
+- Fix linter warnings
+- Add linter workflow
+- Add OpenSSF Best Practices badge
+
 ## v0.2.0
 
 - Interoperability with other Atsign SDKs
