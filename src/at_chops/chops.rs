@@ -19,7 +19,7 @@ pub fn decrypt_private_key(
 ) -> String {
     let iv: [u8; 16] = [0x00; 16];
     let mut cypher = construct_aes_key(decoded_self_encryption_key, &iv);
-    let decoded_private_key = base64_decode(&encrypted_private_key);
+    let decoded_private_key = base64_decode(encrypted_private_key);
 
     let mut output: Vec<u8> = vec![0; decoded_private_key.len()];
     cypher.process(&decoded_private_key, &mut output);
