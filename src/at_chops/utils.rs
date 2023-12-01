@@ -33,7 +33,7 @@ pub fn construct_aes_key(data: &[u8], iv: &[u8; 16]) -> Box<dyn SynchronousStrea
 
 /// Construct an RSA private key from a decoded key.
 pub fn construct_rsa_private_key(data: &[u8]) -> RsaPrivateKey {
-    let rsa_key = RsaPrivateKey::from_pkcs8_der(&data).expect("Unable to create RSA Private Key");
+    let rsa_key = RsaPrivateKey::from_pkcs8_der(data).expect("Unable to create RSA Private Key");
     rsa_key.validate().expect("Invalid RSA Private Key");
     rsa_key
 }
