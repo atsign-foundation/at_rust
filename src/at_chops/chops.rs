@@ -51,7 +51,7 @@ pub fn create_new_shared_symmetric_key() -> String {
 pub fn decrypt_symmetric_key(encrypted_symmetric_key: &str, decrypted_private_key: &str) -> String {
     let decoded_private_key = base64_decode(decrypted_private_key);
     let rsa_private_key = construct_rsa_private_key(&decoded_private_key);
-    let decoded_symmetric_key = base64_decode(&encrypted_symmetric_key);
+    let decoded_symmetric_key = base64_decode(encrypted_symmetric_key);
     decrypt_symm_key_with_private_key(&rsa_private_key, &decoded_symmetric_key)
 }
 
