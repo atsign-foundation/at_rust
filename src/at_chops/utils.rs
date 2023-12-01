@@ -61,8 +61,7 @@ pub fn rsa_sign(key: RsaPrivateKey, data: &[u8]) -> String {
     let signature_bytes = binding.as_ref();
 
     // Encode signature
-    let sha256_signature_encoded = base64_encode(&signature_bytes);
-    sha256_signature_encoded
+    base64_encode(&signature_bytes)
 }
 
 /// Create a new AES-256 key from scratch.
