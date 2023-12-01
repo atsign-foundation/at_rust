@@ -32,7 +32,7 @@ impl<'a> Verb<'a> for LookupVerb {
             send_string.push_str(&format!(".{}", namespace));
         }
         send_string.push_str(&format!("@{}", input.to_at_sign.get_at_sign()));
-        send_string.push_str(&format!("\n"));
+        send_string.push('\n');
         tls_client.send(send_string)?;
         let response = tls_client.read_line()?;
         Ok(response)

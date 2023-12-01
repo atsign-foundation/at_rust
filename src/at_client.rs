@@ -1,6 +1,6 @@
 use log::info;
 
-use crate::at_chops::at_chops::{
+use crate::at_chops::chops::{
     create_new_shared_symmetric_key, decrypt_data_with_shared_symmetric_key, decrypt_symmetric_key,
     encrypt_data_with_public_key, encrypt_data_with_shared_symmetric_key,
 };
@@ -59,7 +59,7 @@ impl AtClient {
             // Save for our use
             let encrypted_encoded_sym_key =
                 encrypt_data_with_public_key(&self.secrets.encrypt_public_key, &new_key);
-            let _ = UpdateVerb::execute(
+            UpdateVerb::execute(
                 &mut self.tls_client,
                 UpdateVerbInputs::new(
                     &self.at_sign,
@@ -82,7 +82,7 @@ impl AtClient {
                 symm_key_encrypted_with_recipient_public_key
             );
             // Send data
-            let _ = UpdateVerb::execute(
+            UpdateVerb::execute(
                 &mut self.tls_client,
                 UpdateVerbInputs::new(
                     &self.at_sign,
@@ -96,9 +96,9 @@ impl AtClient {
         } else if response.contains("data") {
             info!("Already have a copy of the key");
             // Decrypt symm key
-            let encrypted_symmetric_key = response.split(":").collect::<Vec<_>>()[1];
+            let encrypted_symmetric_key = response.split(':').collect::<Vec<_>>()[1];
             symm_key =
-                decrypt_symmetric_key(&encrypted_symmetric_key, &self.secrets.encrypt_private_key);
+                decrypt_symmetric_key(encrypted_symmetric_key, &self.secrets.encrypt_private_key);
             info!("Decrypted symmetric key: {}", symm_key);
         } else {
             return Err(AtError::new(String::from("Unknown response from server")));
@@ -110,7 +110,7 @@ impl AtClient {
             UpdateVerbInputs::new(
                 &self.at_sign,
                 // TODO: Pass this in as an option somewhere
-                &record_id,
+                record_id,
                 &encrypted_data_to_send,
                 Some(&self.namespace),
                 None,
@@ -128,7 +128,7 @@ impl AtClient {
             &mut self.tls_client,
             LookupVerbInputs::new(&from, record_id, Some(&self.namespace)),
         )?;
-        let encrypted_and_encoded_data = response.split(":").collect::<Vec<_>>()[1];
+        let encrypted_and_encoded_data = response.split(':').collect::<Vec<_>>()[1];
         info!("Fetching symmetric key");
         // Fetch symm key
         let response = LookupVerb::execute(
@@ -136,15 +136,15 @@ impl AtClient {
             LookupVerbInputs::new(&from, "shared_key", None),
         )?;
         info!("Decrypting symmetric key");
-        let encrypted_and_encoded_symm_key = response.split(":").collect::<Vec<_>>()[1];
+        let encrypted_and_encoded_symm_key = response.split(':').collect::<Vec<_>>()[1];
         let symm_key = decrypt_symmetric_key(
-            &encrypted_and_encoded_symm_key,
+            encrypted_and_encoded_symm_key,
             &self.secrets.encrypt_private_key,
         );
         info!("Decrypted symmetric key: {}", symm_key);
         info!("Decrypting data");
         let encoded_data =
-            decrypt_data_with_shared_symmetric_key(&symm_key, &encrypted_and_encoded_data);
+            decrypt_data_with_shared_symmetric_key(&symm_key, encrypted_and_encoded_data);
         info!("Decrypted data: {}", encoded_data);
 
         Ok(())
@@ -183,7 +183,7 @@ fn get_at_sign_server_addr(
 
     // Trimming to remove the newline character
     let addr = addr.trim();
-    let addr = addr.split(":").collect::<Vec<_>>();
+    let addr = addr.split(':').collect::<Vec<_>>();
     let host = addr[0].to_string();
     let port = addr[1]
         .parse::<u16>()

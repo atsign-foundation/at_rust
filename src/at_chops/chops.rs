@@ -1,4 +1,4 @@
-use log::{info, warn};
+//use log::{info, warn};
 
 use super::utils::{
     base64_decode, base64_encode, construct_aes_key, construct_rsa_private_key,
@@ -19,7 +19,7 @@ pub fn decrypt_private_key(
 ) -> String {
     let iv: [u8; 16] = [0x00; 16];
     let mut cypher = construct_aes_key(decoded_self_encryption_key, &iv);
-    let decoded_private_key = base64_decode(&encrypted_private_key);
+    let decoded_private_key = base64_decode(encrypted_private_key);
 
     let mut output: Vec<u8> = vec![0; decoded_private_key.len()];
     cypher.process(&decoded_private_key, &mut output);
@@ -36,9 +36,9 @@ pub fn decrypt_private_key(
 
 /// Sign a given challenge with the decrypted private key.
 pub fn sign_challenge(challenge: &str, decrypted_private_key: &str) -> String {
-    let decoded_private_key = base64_decode(&decrypted_private_key);
+    let decoded_private_key = base64_decode(decrypted_private_key);
     let rsa_private_key = construct_rsa_private_key(&decoded_private_key);
-    rsa_sign(rsa_private_key, &challenge.as_bytes())
+    rsa_sign(rsa_private_key, challenge.as_bytes())
 }
 
 /// Cut a new symmetric key to be used when interacting with a new atSign.
@@ -49,37 +49,35 @@ pub fn create_new_shared_symmetric_key() -> String {
 
 /// Decrypt the symmetric key with "our" private key.
 pub fn decrypt_symmetric_key(encrypted_symmetric_key: &str, decrypted_private_key: &str) -> String {
-    let decoded_private_key = base64_decode(&decrypted_private_key);
+    let decoded_private_key = base64_decode(decrypted_private_key);
     let rsa_private_key = construct_rsa_private_key(&decoded_private_key);
-    let decoded_symmetric_key = base64_decode(&encrypted_symmetric_key);
-    let decrypted_symmetric_key =
-        decrypt_symm_key_with_private_key(&rsa_private_key, &decoded_symmetric_key);
-    decrypted_symmetric_key
+    let decoded_symmetric_key = base64_decode(encrypted_symmetric_key);
+    decrypt_symm_key_with_private_key(&rsa_private_key, &decoded_symmetric_key)
 }
 
 /// Encrypt data with our RSA public key.
 pub fn encrypt_data_with_public_key(encoded_public_key: &str, data: &str) -> String {
-    let decoded_public_key = base64_decode(&encoded_public_key);
+    let decoded_public_key = base64_decode(encoded_public_key);
     let rsa_public_key = construct_rsa_public_key(&decoded_public_key);
-    let encrypted_data = encrypt_with_public_key(&rsa_public_key, &data.as_bytes());
+    let encrypted_data = encrypt_with_public_key(&rsa_public_key, data.as_bytes());
     encrypted_data
 }
 
 /// Encrypt data with AES symm key.
 pub fn encrypt_data_with_shared_symmetric_key(encoded_symmetric_key: &str, data: &str) -> String {
-    let decoded_symmetric_key = base64_decode(&encoded_symmetric_key);
+    let decoded_symmetric_key = base64_decode(encoded_symmetric_key);
     let iv: [u8; 16] = [0x00; 16];
     let mut cypher = construct_aes_key(&decoded_symmetric_key, &iv);
-    let encrypted_data = encrypt_data_with_aes_key(&mut cypher, &data.as_bytes());
+    let encrypted_data = encrypt_data_with_aes_key(&mut cypher, data.as_bytes());
     base64_encode(&encrypted_data)
 }
 
 /// Decrypt data with an encoded AES symm key.
 pub fn decrypt_data_with_shared_symmetric_key(encoded_symmetric_key: &str, data: &str) -> String {
-    let decoded_symmetric_key = base64_decode(&encoded_symmetric_key);
+    let decoded_symmetric_key = base64_decode(encoded_symmetric_key);
     let iv: [u8; 16] = [0x00; 16];
     let mut cypher = construct_aes_key(&decoded_symmetric_key, &iv);
-    let decoded_data = base64_decode(&data);
+    let decoded_data = base64_decode(data);
     let decrypted_data = decrypt_data_with_aes_key(&mut cypher, &decoded_data);
     String::from_utf8(decrypted_data).expect("Unable to convert to UTF-8")
 }
@@ -115,13 +113,13 @@ mod test {
     #[test]
     fn decrypt_private_key_test() {
         let self_encryption_key = decode_self_encryption_key(SELF_ENCRYPTION_KEY_ENCODED);
-        let result = decrypt_private_key(&PKAM_KEY_ENCRYPTED_AND_ENCODED, &self_encryption_key);
+        let result = decrypt_private_key(PKAM_KEY_ENCRYPTED_AND_ENCODED, &self_encryption_key);
         assert_eq!(result, PKAM_KEY_DECRYPTED_AND_ENCODED);
     }
 
     #[test]
     fn sign_challenge_test() {
-        let result = sign_challenge(CHALLENGE_TEXT, &PKAM_KEY_DECRYPTED_AND_ENCODED);
+        let result = sign_challenge(CHALLENGE_TEXT, PKAM_KEY_DECRYPTED_AND_ENCODED);
         assert_eq!(result, CHALLENGE_RESULT);
     }
 

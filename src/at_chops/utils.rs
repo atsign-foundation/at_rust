@@ -1,9 +1,9 @@
-use std::iter::repeat;
+//use std::iter::repeat;
 
 use crypto::{aes::KeySize, symmetriccipher::SynchronousStreamCipher};
 
 use base64::{engine::general_purpose, Engine as _};
-use log::info;
+//use log::info;
 use rsa::{
     pkcs1v15::SigningKey,
     pkcs8::{DecodePrivateKey, DecodePublicKey},
@@ -33,16 +33,14 @@ pub fn construct_aes_key(data: &[u8], iv: &[u8; 16]) -> Box<dyn SynchronousStrea
 
 /// Construct an RSA private key from a decoded key.
 pub fn construct_rsa_private_key(data: &[u8]) -> RsaPrivateKey {
-    let rsa_key = RsaPrivateKey::from_pkcs8_der(&data).expect("Unable to create RSA Private Key");
+    let rsa_key = RsaPrivateKey::from_pkcs8_der(data).expect("Unable to create RSA Private Key");
     rsa_key.validate().expect("Invalid RSA Private Key");
     rsa_key
 }
 
 /// Construct an RSA public key from a decoded key.
 pub fn construct_rsa_public_key(data: &[u8]) -> RsaPublicKey {
-    let rsa_key =
-        RsaPublicKey::from_public_key_der(&data).expect("Unable to create RSA Public Key");
-    rsa_key
+    RsaPublicKey::from_public_key_der(data).expect("Unable to create RSA Public Key")
 }
 
 /// Sign data using an RSA private key.
@@ -53,16 +51,15 @@ pub fn rsa_sign(key: RsaPrivateKey, data: &[u8]) -> String {
     let verifying_key = signing_key.verifying_key();
 
     // Sign
-    let signature = signing_key.sign_with_rng(&mut rng, &data);
+    let signature = signing_key.sign_with_rng(&mut rng, data);
     verifying_key
-        .verify(&data, &signature)
+        .verify(data, &signature)
         .expect("failed to verify");
     let binding = signature.to_bytes();
     let signature_bytes = binding.as_ref();
 
     // Encode signature
-    let sha256_signature_encoded = base64_encode(&signature_bytes);
-    sha256_signature_encoded
+    base64_encode(signature_bytes)
 }
 
 /// Create a new AES-256 key from scratch.
@@ -116,7 +113,7 @@ pub fn decrypt_data_with_aes_key(
     data: &[u8],
 ) -> Vec<u8> {
     let mut output: Vec<u8> = vec![0; data.len()];
-    aes_key.process(&data, &mut output);
+    aes_key.process(data, &mut output);
     // Remove padding due to PkCS#7 padding used by other SDKs
     let last = output.last().unwrap();
     output.truncate(output.len() - usize::from(*last));
@@ -182,7 +179,7 @@ mod test {
     #[test]
     fn construct_rsa_private_key_test() {
         // Arrange
-        let private_key = base64_decode(&PKAM_KEY_DECRYPTED_AND_ENCODED);
+        let private_key = base64_decode(PKAM_KEY_DECRYPTED_AND_ENCODED);
         // Act
         let _ = construct_rsa_private_key(&private_key);
         // Assert it doesn't panic
@@ -191,7 +188,7 @@ mod test {
     #[test]
     fn construct_rsa_public_key_test() {
         // Arrange
-        let public_key = base64_decode(&PUBLIC_ENCRYPTION_KEY);
+        let public_key = base64_decode(PUBLIC_ENCRYPTION_KEY);
         // Act
         let _ = construct_rsa_public_key(&public_key);
         // Assert it doesn't panic
@@ -200,7 +197,7 @@ mod test {
     #[test]
     fn rsa_sign_test() {
         // Arrange
-        let private_key = base64_decode(&PKAM_KEY_DECRYPTED_AND_ENCODED);
+        let private_key = base64_decode(PKAM_KEY_DECRYPTED_AND_ENCODED);
         let rsa_key = construct_rsa_private_key(&private_key);
         // Act
         let decrypted = rsa_sign(rsa_key, CHALLENGE_TEXT.as_bytes());
@@ -216,7 +213,7 @@ mod test {
 
     #[test]
     fn encrypt_with_public_key_test() {
-        let public_key = base64_decode(&PUBLIC_ENCRYPTION_KEY);
+        let public_key = base64_decode(PUBLIC_ENCRYPTION_KEY);
         let public_key = construct_rsa_public_key(&public_key);
         let _ = encrypt_with_public_key(&public_key, &TEST_KEY_DECODED);
         // Assert it doesn't panic.

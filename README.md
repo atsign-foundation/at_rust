@@ -1,6 +1,7 @@
 <img width=250px src="https://atsign.dev/assets/img/atPlatform_logo_gray.svg?sanitize=true">
 
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/atsign-foundation/at_rust/badge)](https://api.securityscorecards.dev/projects/github.com/atsign-foundation/at_rust)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/8148/badge)](https://www.bestpractices.dev/projects/8148)
 
 # Rust SDK - (⚠️Alpha version⚠️)
 This repo contains libraries, tools, samples and examples for developers who wish to work with the atPlatform from Rust code.

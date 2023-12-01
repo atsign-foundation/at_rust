@@ -1,4 +1,4 @@
-use crate::at_chops::at_chops::{decode_self_encryption_key, decrypt_private_key};
+use crate::at_chops::chops::{decode_self_encryption_key, decrypt_private_key};
 use crate::at_error::Result;
 use log::info;
 use serde_json::{from_str, Value};
@@ -64,17 +64,17 @@ impl AtSecrets {
     ) -> Result<AtSecrets> {
         info!("Decoding keys");
         // Decode the self encrypt key from base64
-        let decoded_self_encrypted_key = decode_self_encryption_key(&aes_self_encrypt_key);
+        let decoded_self_encrypted_key = decode_self_encryption_key(aes_self_encrypt_key);
 
         // Use the key to decrypt all the other private keys
         let pkam_public_key =
-            decrypt_private_key(&aes_pkam_public_key, &decoded_self_encrypted_key);
+            decrypt_private_key(aes_pkam_public_key, &decoded_self_encrypted_key);
         let pkam_private_key =
-            decrypt_private_key(&aes_pkam_private_key, &decoded_self_encrypted_key);
+            decrypt_private_key(aes_pkam_private_key, &decoded_self_encrypted_key);
         let encrypt_public_key =
-            decrypt_private_key(&aes_encrypt_public_key, &decoded_self_encrypted_key);
+            decrypt_private_key(aes_encrypt_public_key, &decoded_self_encrypted_key);
         let encrypt_private_key =
-            decrypt_private_key(&aes_encrypt_private_key, &decoded_self_encrypted_key);
+            decrypt_private_key(aes_encrypt_private_key, &decoded_self_encrypted_key);
 
         info!("Keys decoded and decrypted");
 
