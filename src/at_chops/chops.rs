@@ -59,7 +59,7 @@ pub fn decrypt_symmetric_key(encrypted_symmetric_key: &str, decrypted_private_ke
 pub fn encrypt_data_with_public_key(encoded_public_key: &str, data: &str) -> String {
     let decoded_public_key = base64_decode(encoded_public_key);
     let rsa_public_key = construct_rsa_public_key(&decoded_public_key);
-    let encrypted_data = encrypt_with_public_key(&rsa_public_key, &data.as_bytes());
+    let encrypted_data = encrypt_with_public_key(&rsa_public_key, data.as_bytes());
     encrypted_data
 }
 
