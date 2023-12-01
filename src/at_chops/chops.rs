@@ -113,13 +113,13 @@ mod test {
     #[test]
     fn decrypt_private_key_test() {
         let self_encryption_key = decode_self_encryption_key(SELF_ENCRYPTION_KEY_ENCODED);
-        let result = decrypt_private_key(&PKAM_KEY_ENCRYPTED_AND_ENCODED, &self_encryption_key);
+        let result = decrypt_private_key(PKAM_KEY_ENCRYPTED_AND_ENCODED, &self_encryption_key);
         assert_eq!(result, PKAM_KEY_DECRYPTED_AND_ENCODED);
     }
 
     #[test]
     fn sign_challenge_test() {
-        let result = sign_challenge(CHALLENGE_TEXT, &PKAM_KEY_DECRYPTED_AND_ENCODED);
+        let result = sign_challenge(CHALLENGE_TEXT, PKAM_KEY_DECRYPTED_AND_ENCODED);
         assert_eq!(result, CHALLENGE_RESULT);
     }
 

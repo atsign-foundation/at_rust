@@ -29,7 +29,7 @@ impl<'a> Verb<'a> for FromVerb {
         let (_, data) = response.split_at(6);
         info!("Challenge: {}", data);
 
-        let signed_challenge = sign_challenge(&data, input.priv_pkam);
+        let signed_challenge = sign_challenge(data, input.priv_pkam);
 
         tls_client.send(format!("pkam:{}\n", signed_challenge))?;
         let response = tls_client.read_line()?;

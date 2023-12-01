@@ -179,7 +179,7 @@ mod test {
     #[test]
     fn construct_rsa_private_key_test() {
         // Arrange
-        let private_key = base64_decode(&PKAM_KEY_DECRYPTED_AND_ENCODED);
+        let private_key = base64_decode(PKAM_KEY_DECRYPTED_AND_ENCODED);
         // Act
         let _ = construct_rsa_private_key(&private_key);
         // Assert it doesn't panic
@@ -188,7 +188,7 @@ mod test {
     #[test]
     fn construct_rsa_public_key_test() {
         // Arrange
-        let public_key = base64_decode(&PUBLIC_ENCRYPTION_KEY);
+        let public_key = base64_decode(PUBLIC_ENCRYPTION_KEY);
         // Act
         let _ = construct_rsa_public_key(&public_key);
         // Assert it doesn't panic
@@ -197,7 +197,7 @@ mod test {
     #[test]
     fn rsa_sign_test() {
         // Arrange
-        let private_key = base64_decode(&PKAM_KEY_DECRYPTED_AND_ENCODED);
+        let private_key = base64_decode(PKAM_KEY_DECRYPTED_AND_ENCODED);
         let rsa_key = construct_rsa_private_key(&private_key);
         // Act
         let decrypted = rsa_sign(rsa_key, CHALLENGE_TEXT.as_bytes());
@@ -213,7 +213,7 @@ mod test {
 
     #[test]
     fn encrypt_with_public_key_test() {
-        let public_key = base64_decode(&PUBLIC_ENCRYPTION_KEY);
+        let public_key = base64_decode(PUBLIC_ENCRYPTION_KEY);
         let public_key = construct_rsa_public_key(&public_key);
         let _ = encrypt_with_public_key(&public_key, &TEST_KEY_DECODED);
         // Assert it doesn't panic.
