@@ -7,6 +7,22 @@ use super::utils::{
     rsa_sign,
 };
 
+use super::crypto_functions_trait::CryptoFunctions;
+
+pub struct Chops<T: CryptoFunctions> {
+    crypto_service: T,
+}
+
+impl<T: CryptoFunctions> Chops<T> {
+    fn new(crypto_service: T) -> Self {
+        Chops { crypto_service }
+    }
+
+    fn do_something(&self) {
+        self.crypto_service.base64_encode("hello");
+    }
+}
+
 /// Base64 decode the self encryption key.
 pub fn decode_self_encryption_key(self_encryption_key: &str) -> Vec<u8> {
     base64_decode(self_encryption_key)
