@@ -13,7 +13,7 @@ use rsa::signature::SignatureEncoding;
 use rsa::signature::Verifier;
 use rsa::{Pkcs1v15Encrypt, RsaPrivateKey, RsaPublicKey};
 
-use crate::crypto_functions_trait::CryptoFunctions;
+use at_chops::crypto_functions_trait::CryptoFunctions;
 
 pub struct DefaultCryptoFunctions {}
 
