@@ -1,5 +1,9 @@
+use aes::{cipher::StreamCipher, Aes256};
 use anyhow::Result;
 use base64::{engine::general_purpose, Engine as _};
+use cipher::generic_array::GenericArray;
+use cipher::KeyIvInit;
+use ctr::Ctr128BE;
 use rsa::pkcs1v15::SigningKey;
 use rsa::pkcs8::{DecodePrivateKey, DecodePublicKey};
 use rsa::sha2::Sha256;
@@ -11,7 +15,7 @@ use rsa::{Pkcs1v15Encrypt, RsaPrivateKey, RsaPublicKey};
 
 use crate::crypto_functions_trait::CryptoFunctions;
 
-struct DefaultCryptoFunctions {}
+pub struct DefaultCryptoFunctions {}
 
 impl DefaultCryptoFunctions {
     pub fn new() -> Self {
@@ -20,6 +24,7 @@ impl DefaultCryptoFunctions {
 }
 
 impl CryptoFunctions for DefaultCryptoFunctions {
+    // --- Base64 ---
     fn base64_decode<T: AsRef<[u8]>>(&self, data: T) -> Result<Vec<u8>> {
         Ok(general_purpose::STANDARD.decode(data)?)
     }
@@ -28,14 +33,7 @@ impl CryptoFunctions for DefaultCryptoFunctions {
         general_purpose::STANDARD.encode(data)
     }
 
-    fn construct_aes_key<T: AsRef<[u8]>, U: aes::cipher::StreamCipher>(
-        &self,
-        key: T,
-        iv: &[u8; 16],
-    ) -> anyhow::Result<U> {
-        todo!()
-    }
-
+    // --- RSA ---
     fn construct_rsa_private_key<T: AsRef<[u8]>>(&self, key: T) -> Result<RsaPrivateKey> {
         let rsa_private_key = RsaPrivateKey::from_pkcs8_der(key.as_ref())?;
         rsa_private_key.validate()?;
@@ -56,35 +54,52 @@ impl CryptoFunctions for DefaultCryptoFunctions {
         Ok(Vec::from(signature.to_bytes().as_ref()))
     }
 
-    fn create_new_aes_key(&self) -> anyhow::Result<[u8; 32]> {
-        todo!()
-    }
-
-    fn rsa_encrypt<T: AsRef<[u8]>>(&self, data: T, key: &RsaPublicKey) -> Result<Vec<u8>> {
+    fn rsa_encrypt<T: AsRef<[u8]>>(&self, plaintext: T, key: &RsaPublicKey) -> Result<Vec<u8>> {
         let mut rng = rand::thread_rng();
-        let enc_data = key.encrypt(&mut rng, Pkcs1v15Encrypt, data.as_ref())?;
+        let enc_data = key.encrypt(&mut rng, Pkcs1v15Encrypt, plaintext.as_ref())?;
         Ok(enc_data)
     }
 
-    fn rsa_decrypt<T: AsRef<[u8]>>(&self, data: T, key: &RsaPrivateKey) -> Result<Vec<u8>> {
-        let dec_data = key.decrypt(Pkcs1v15Encrypt, data.as_ref())?;
+    fn rsa_decrypt<T: AsRef<[u8]>>(&self, ciphertext: T, key: &RsaPrivateKey) -> Result<Vec<u8>> {
+        let dec_data = key.decrypt(Pkcs1v15Encrypt, ciphertext.as_ref())?;
         Ok(dec_data)
     }
 
-    fn aes_encrypt<T: AsRef<[u8]>, U: aes::cipher::StreamCipher>(
+    // --- AES ---
+    fn construct_aes_cipher<T: AsRef<[u8]>>(
         &self,
-        key: &mut U,
-        data: T,
-    ) -> anyhow::Result<U> {
-        todo!()
+        key: T,
+        iv: &[u8; 16],
+    ) -> Result<Box<dyn StreamCipher>> {
+        let key = GenericArray::from_slice(key.as_ref());
+        let nonce = GenericArray::from_slice(iv);
+        let cipher = Ctr128BE::<Aes256>::new(key, nonce);
+        Ok(Box::new(cipher))
     }
 
-    fn aes_decrypt<T: AsRef<[u8]>, U: aes::cipher::StreamCipher>(
+    fn create_new_aes_key(&self) -> Result<[u8; 32]> {
+        let key: [u8; 32] = rand::random();
+        Ok(key)
+    }
+
+    fn aes_encrypt<T: AsRef<[u8]>>(
         &self,
-        key: &mut U,
-        data: T,
-    ) -> anyhow::Result<U> {
-        todo!()
+        cipher: &mut dyn StreamCipher,
+        plaintext: T,
+    ) -> Result<Vec<u8>> {
+        let mut buffer = plaintext.as_ref().to_vec();
+        cipher.apply_keystream(&mut buffer);
+        Ok(buffer)
+    }
+
+    fn aes_decrypt<T: AsRef<[u8]>>(
+        &self,
+        cipher: &mut dyn StreamCipher,
+        ciphertext: T,
+    ) -> Result<Vec<u8>> {
+        let mut buffer = ciphertext.as_ref().to_vec();
+        cipher.apply_keystream(&mut buffer);
+        Ok(buffer)
     }
 }
 
@@ -93,7 +108,6 @@ mod test {
 
     use super::*;
 
-    // Create subject to be tested
     fn create_default_crypto_functions() -> DefaultCryptoFunctions {
         DefaultCryptoFunctions::new()
     }
@@ -165,6 +179,29 @@ mod test {
         let decrypt_result = subject
             .rsa_decrypt(encrypt_result, &rsa_private_key)
             .unwrap();
+        assert_eq!(&data[..], &decrypt_result[..]);
+    }
+
+    #[test]
+    fn test_construct_aes_cipher() {
+        let subject = create_default_crypto_functions();
+        let key = subject.create_new_aes_key().unwrap();
+        let iv = [0u8; 16];
+        let result = subject.construct_aes_cipher(&key, &iv);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_aes_encrypt_decrypt() {
+        let subject = create_default_crypto_functions();
+        let key = subject.create_new_aes_key().unwrap();
+        let iv = [0u8; 16];
+        let mut cipher = subject.construct_aes_cipher(&key, &iv).unwrap();
+        let data = b"Hello, world!";
+        let encrypt_result = subject.aes_encrypt(&mut *cipher, data).unwrap();
+        assert_ne!(encrypt_result, data);
+        let mut cipher = subject.construct_aes_cipher(&key, &iv).unwrap();
+        let decrypt_result = subject.aes_decrypt(&mut *cipher, &encrypt_result).unwrap();
         assert_eq!(&data[..], &decrypt_result[..]);
     }
 }
