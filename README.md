@@ -23,7 +23,7 @@ Send data to an atSign - `cargo run --example send_data_example <path-to-at-keys
 - `atSign-of-sender` - The name of the atSign (without `@`) who is sending the data
 - `atSign-of-receiver` - The name of the atSign (without `@`) who is receiving the data
 #### E.g.
-```sh 
+```sh
 RUST_LOG=info cargo run --example send_data_example ~/.atsign/keys/@aliens12_key.atKeys hello_there aliens12 virgogigantic64
 ```
 
@@ -33,7 +33,7 @@ Fetch data from an atSign - `cargo run --example fetch_data_example <path-to-at-
 - `atSign-of-receiver` - The name of the atSign (without `@`) who is receiving the data
 - `atSign-of-sender` - The name of the atSign (without `@`) who is sending the data
 #### E.g.
-```sh 
+```sh
 RUST_LOG=info cargo run --example fetch_data_example ~/.atsign/keys/@virgogigantic64_key.atKeys virgogigantic64 aliens12
 ```
 
