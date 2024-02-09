@@ -6,14 +6,12 @@ use cipher::KeyIvInit;
 use ctr::Ctr128BE;
 use rsa::pkcs1v15::SigningKey;
 use rsa::pkcs8::{DecodePrivateKey, DecodePublicKey};
+use rsa::sha2::Digest;
 use rsa::sha2::Sha256;
-use rsa::signature::Keypair;
-use rsa::signature::RandomizedSigner;
-use rsa::signature::SignatureEncoding;
-use rsa::signature::Verifier;
-use rsa::{Pkcs1v15Encrypt, RsaPrivateKey, RsaPublicKey};
+use rsa::signature::{Keypair, RandomizedSigner, SignatureEncoding, Verifier};
+use rsa::{Pkcs1v15Encrypt, Pkcs1v15Sign, RsaPrivateKey, RsaPublicKey};
 
-use at_chops::crypto_functions_trait::CryptoFunctions;
+use crate::CryptoFunctions;
 
 pub struct DefaultCryptoFunctions {}
 
@@ -24,16 +22,16 @@ impl DefaultCryptoFunctions {
 }
 
 impl CryptoFunctions for DefaultCryptoFunctions {
-    // --- Base64 ---
-    fn base64_decode<T: AsRef<[u8]>>(&self, data: T) -> Result<Vec<u8>> {
-        Ok(general_purpose::STANDARD.decode(data)?)
-    }
-
+    // ----- Base64 -----
     fn base64_encode<T: AsRef<[u8]>>(&self, data: T) -> String {
         general_purpose::STANDARD.encode(data)
     }
 
-    // --- RSA ---
+    fn base64_decode<T: AsRef<[u8]>>(&self, data: T) -> Result<Vec<u8>> {
+        Ok(general_purpose::STANDARD.decode(data)?)
+    }
+
+    // ----- RSA -----
     fn construct_rsa_private_key<T: AsRef<[u8]>>(&self, key: T) -> Result<RsaPrivateKey> {
         let rsa_private_key = RsaPrivateKey::from_pkcs8_der(key.as_ref())?;
         rsa_private_key.validate()?;
@@ -43,6 +41,26 @@ impl CryptoFunctions for DefaultCryptoFunctions {
     fn construct_rsa_public_key<T: AsRef<[u8]>>(&self, key: T) -> Result<RsaPublicKey> {
         let rsa_public_key = RsaPublicKey::from_public_key_der(key.as_ref())?;
         Ok(rsa_public_key)
+    }
+
+    fn generate_rsa_key_pair(&self) -> Result<(RsaPrivateKey, RsaPublicKey)> {
+        let mut rng = rand::thread_rng();
+        let bits = 2048;
+        let private_key = RsaPrivateKey::new(&mut rng, bits)?;
+        let public_key = RsaPublicKey::from(&private_key);
+        Ok((private_key, public_key))
+    }
+
+    fn rsa_verify<T: AsRef<[u8]>, U: AsRef<[u8]>>(
+        &self,
+        data: T,
+        signature: U,
+        key: &RsaPublicKey,
+    ) -> Result<bool> {
+        let hash = Sha256::digest(data);
+        let padding = Pkcs1v15Sign::new::<Sha256>();
+        let result = key.verify(padding, &hash, signature.as_ref()).is_ok();
+        Ok(result)
     }
 
     fn rsa_sign<T: AsRef<[u8]>>(&self, data: T, key: &RsaPrivateKey) -> Result<Vec<u8>> {
@@ -65,7 +83,7 @@ impl CryptoFunctions for DefaultCryptoFunctions {
         Ok(dec_data)
     }
 
-    // --- AES ---
+    // ----- AES -----
     fn construct_aes_cipher<T: AsRef<[u8]>>(
         &self,
         key: T,
@@ -152,6 +170,13 @@ mod test {
     }
 
     #[test]
+    fn test_generate_rsa_key_pair() {
+        let subject = create_default_crypto_functions();
+        let result = subject.generate_rsa_key_pair();
+        assert!(result.is_ok())
+    }
+
+    #[test]
     fn test_rsa_sign() {
         let subject = create_default_crypto_functions();
         let rsa_private_key = subject
@@ -162,6 +187,29 @@ mod test {
         assert!(result.is_ok());
         // Ensure the signature is different from the original data
         assert_ne!(result.unwrap(), data);
+    }
+
+    #[test]
+    fn test_rsa_verify() {
+        let subject = create_default_crypto_functions();
+        let (rsa_private_key, rsa_public_key) = subject.generate_rsa_key_pair().unwrap();
+        let data = b"Hello, world!";
+        let signature = subject.rsa_sign(data, &rsa_private_key).unwrap();
+        let result = subject.rsa_verify(data, &signature, &rsa_public_key);
+        assert!(result.is_ok());
+        assert!(result.unwrap() == true); // Just being explicit
+    }
+
+    #[test]
+    fn test_rsa_verify_fail_with_different_key_pairs() {
+        let subject = create_default_crypto_functions();
+        let (rsa_private_key, _) = subject.generate_rsa_key_pair().unwrap();
+        let (_, rsa_public_key) = subject.generate_rsa_key_pair().unwrap();
+        let data = b"Hello, world!";
+        let signature = subject.rsa_sign(data, &rsa_private_key).unwrap();
+        let result = subject.rsa_verify(data, &signature, &rsa_public_key);
+        assert!(result.is_ok());
+        assert!(result.unwrap() == false); // Just being explicit
     }
 
     #[test]
