@@ -1,4 +1,4 @@
-workspace = { members = ["at_chops", "at_errors", "at_records", "at_sign", "at_tls"] }
+workspace = { members = ["at_chops", "at_errors", "at_records", "at_secrets", "at_sign", "at_tls", "at_verbs"] }
 [package]
 name = "at_rust"
 version = "0.2.1"
