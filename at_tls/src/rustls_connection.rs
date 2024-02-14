@@ -18,6 +18,7 @@ impl RustlsConnection {
 
 impl TlsConnection for RustlsConnection {
     fn connect(address: &AtServerAddr) -> Result<Self> {
+        // TODO: Allow custom root certificates
         // Create the config with default root certificates
         let mut root_store = rustls::RootCertStore::empty();
         root_store.extend(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());

@@ -1,5 +1,8 @@
 use std::error::Error;
 use std::fmt;
+use std::result;
+
+pub type Result<T> = result::Result<T, AtError>;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum AtError {

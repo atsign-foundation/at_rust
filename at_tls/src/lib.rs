@@ -29,13 +29,12 @@ impl<T: TlsConnection> TlsClient<T> {
         self.tls_connection.write_all(data.as_ref())
     }
 
-    /// Reads a line from the stream and converts it to a String which is trimmed.
-    pub fn read_data(&mut self) -> std::io::Result<String> {
+    /// Reads a line from the stream and returns the bytes.
+    pub fn read_data(&mut self) -> std::io::Result<Vec<u8>> {
         let mut res = vec![];
         let mut reader = BufReader::new(&mut self.tls_connection);
         let _ = reader.read_until(b'\n', &mut res)?;
-        let data = String::from_utf8_lossy(&res).trim().to_owned();
-        Ok(data)
+        Ok(res)
     }
 }
 
@@ -72,6 +71,9 @@ mod test {
             .unwrap();
         let res = subject.read_data();
         assert!(res.is_ok());
-        assert_eq!(res.unwrap(), String::from("@null"));
+        assert_eq!(
+            String::from_utf8_lossy(&res.unwrap()).trim(),
+            String::from("@null")
+        );
     }
 }
