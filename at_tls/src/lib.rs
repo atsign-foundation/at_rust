@@ -7,21 +7,19 @@ pub mod at_server_addr;
 mod rustls_connection;
 pub mod tls_connection_trait;
 
-pub struct TlsClient<T: TlsConnection> {
-    tls_connection: T,
+pub struct TlsClient {
+    tls_connection: Box<dyn TlsConnection>,
 }
 
-impl<T: TlsConnection> TlsClient<T> {
-    fn new(tls_connection: T) -> Self {
-        TlsClient { tls_connection }
-    }
-
+impl TlsClient {
     /// Connects to the specified server address using TLS.
     ///
     /// Returns a new `TlsClient` if the connection is successful.
-    pub fn connect(address: &AtServerAddr) -> std::io::Result<Self> {
+    pub fn connect<T: TlsConnection + 'static>(address: &AtServerAddr) -> std::io::Result<Self> {
         let tls_connection = T::connect(address)?;
-        Ok(TlsClient::new(tls_connection))
+        Ok(Self {
+            tls_connection: Box::new(tls_connection),
+        })
     }
 
     /// Sends data to the server.
@@ -45,9 +43,9 @@ mod test {
 
     use super::*;
 
-    fn create_subject() -> std::io::Result<TlsClient<RustlsConnection>> {
+    fn create_subject() -> std::io::Result<TlsClient> {
         let address = AtServerAddr::new(String::from("root.atsign.org"), 64);
-        TlsClient::connect(&address)
+        TlsClient::connect::<RustlsConnection>(&address)
     }
 
     #[test]
