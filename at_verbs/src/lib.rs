@@ -3,6 +3,7 @@
 //! Some are for authentication, some are for data retrieval and some are for data manipulation.
 
 pub mod from_verb;
+pub mod pkam_verb;
 pub mod verb_trait;
 
 mod prelude {

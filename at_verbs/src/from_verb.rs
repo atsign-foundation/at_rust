@@ -1,4 +1,3 @@
-use at_chops::AtChops;
 use at_sign::AtSign;
 
 use super::prelude::*;
@@ -6,14 +5,11 @@ use super::prelude::*;
 pub struct FromVerbInputs<'a> {
     /// The atSign of the client device.
     pub at_sign: &'a AtSign,
-
-    /// The AtChops instance to use for signing the challenge.
-    pub at_chops: &'a AtChops,
 }
 
 impl<'a> FromVerbInputs<'a> {
-    pub fn new(at_sign: &'a AtSign, at_chops: &'a AtChops) -> Self {
-        Self { at_sign, at_chops }
+    pub fn new(at_sign: &'a AtSign) -> Self {
+        Self { at_sign }
     }
 }
 
@@ -26,7 +22,7 @@ pub struct FromVerb {}
 
 impl<'a> Verb<'a> for FromVerb {
     type Inputs = FromVerbInputs<'a>;
-    type Output = ();
+    type Output = String;
 
     fn execute(tls_client: &mut TlsClient, input: Self::Inputs) -> Result<Self::Output> {
         info!("Starting PKAM authentication");
@@ -38,22 +34,6 @@ impl<'a> Verb<'a> for FromVerb {
 
         let (_, data) = response_string.split_at(6);
         info!("Challenge: {}", data);
-
-        let signed_challenge = input
-            .at_chops
-            .sign_challenge(data)
-            .map_err(|_| AtError::UnknownAtClientException)?;
-
-        let data_to_send = format!("pkam:{}\n", signed_challenge);
-        tls_client.send_data(data_to_send)?;
-
-        let response_data = tls_client.read_data()?;
-        let response_string = Self::parse_server_response(&response_data)?;
-
-        if response_string.contains("success") {
-            Ok(())
-        } else {
-            Err(AtError::UnknownAtClientException)
-        }
+        Ok(data.to_owned())
     }
 }
