@@ -20,8 +20,13 @@ pub trait Verb<'a> {
         })?;
 
         // Check that it doesn't contain error codes
-        if response.starts_with("AT") {
-            let (code, _) = response.split_at(6);
+        if response.starts_with("error") {
+            let code = response
+                .split_once(":")
+                .ok_or(AtError::UnknownAtClientException)?
+                .1
+                .split_at(6)
+                .0;
             return Err(AtError::from_code(code));
         }
 
@@ -62,7 +67,7 @@ mod tests {
 
     #[test]
     fn test_parse_server_response_with_error_code() {
-        let response = b"AT0001: Error Message";
+        let response = b"error:AT0001: Error Message";
         let result = TestVerb::parse_server_response(response);
         assert!(result.is_err());
         assert_eq!(result.err().unwrap(), AtError::ServerException); // Assuming AT0001 maps to ServerException
