@@ -23,22 +23,22 @@ impl DefaultCryptoFunctions {
 
 impl CryptoFunctions for DefaultCryptoFunctions {
     // ----- Base64 -----
-    fn base64_encode<T: AsRef<[u8]>>(&self, data: T) -> String {
+    fn base64_encode(&self, data: &[u8]) -> String {
         general_purpose::STANDARD.encode(data)
     }
 
-    fn base64_decode<T: AsRef<[u8]>>(&self, data: T) -> Result<Vec<u8>> {
+    fn base64_decode(&self, data: &[u8]) -> Result<Vec<u8>> {
         Ok(general_purpose::STANDARD.decode(data)?)
     }
 
     // ----- RSA -----
-    fn construct_rsa_private_key<T: AsRef<[u8]>>(&self, key: T) -> Result<RsaPrivateKey> {
+    fn construct_rsa_private_key(&self, key: &[u8]) -> Result<RsaPrivateKey> {
         let rsa_private_key = RsaPrivateKey::from_pkcs8_der(key.as_ref())?;
         rsa_private_key.validate()?;
         Ok(rsa_private_key)
     }
 
-    fn construct_rsa_public_key<T: AsRef<[u8]>>(&self, key: T) -> Result<RsaPublicKey> {
+    fn construct_rsa_public_key(&self, key: &[u8]) -> Result<RsaPublicKey> {
         let rsa_public_key = RsaPublicKey::from_public_key_der(key.as_ref())?;
         Ok(rsa_public_key)
     }
@@ -51,19 +51,14 @@ impl CryptoFunctions for DefaultCryptoFunctions {
         Ok((private_key, public_key))
     }
 
-    fn rsa_verify<T: AsRef<[u8]>, U: AsRef<[u8]>>(
-        &self,
-        data: T,
-        signature: U,
-        key: &RsaPublicKey,
-    ) -> Result<bool> {
+    fn rsa_verify(&self, data: &[u8], signature: &[u8], key: &RsaPublicKey) -> Result<bool> {
         let hash = Sha256::digest(data);
         let padding = Pkcs1v15Sign::new::<Sha256>();
         let result = key.verify(padding, &hash, signature.as_ref()).is_ok();
         Ok(result)
     }
 
-    fn rsa_sign<T: AsRef<[u8]>>(&self, data: T, key: &RsaPrivateKey) -> Result<Vec<u8>> {
+    fn rsa_sign(&self, data: &[u8], key: &RsaPrivateKey) -> Result<Vec<u8>> {
         let mut rng = rand::thread_rng();
         let signing_key = SigningKey::<Sha256>::new(key.clone());
         let verifying_key = signing_key.verifying_key();
@@ -72,23 +67,19 @@ impl CryptoFunctions for DefaultCryptoFunctions {
         Ok(Vec::from(signature.to_bytes().as_ref()))
     }
 
-    fn rsa_encrypt<T: AsRef<[u8]>>(&self, plaintext: T, key: &RsaPublicKey) -> Result<Vec<u8>> {
+    fn rsa_encrypt(&self, plaintext: &[u8], key: &RsaPublicKey) -> Result<Vec<u8>> {
         let mut rng = rand::thread_rng();
         let enc_data = key.encrypt(&mut rng, Pkcs1v15Encrypt, plaintext.as_ref())?;
         Ok(enc_data)
     }
 
-    fn rsa_decrypt<T: AsRef<[u8]>>(&self, ciphertext: T, key: &RsaPrivateKey) -> Result<Vec<u8>> {
+    fn rsa_decrypt(&self, ciphertext: &[u8], key: &RsaPrivateKey) -> Result<Vec<u8>> {
         let dec_data = key.decrypt(Pkcs1v15Encrypt, ciphertext.as_ref())?;
         Ok(dec_data)
     }
 
     // ----- AES -----
-    fn construct_aes_cipher<T: AsRef<[u8]>>(
-        &self,
-        key: T,
-        iv: &[u8; 16],
-    ) -> Result<Box<dyn StreamCipher>> {
+    fn construct_aes_cipher(&self, key: &[u8], iv: &[u8; 16]) -> Result<Box<dyn StreamCipher>> {
         let key = GenericArray::from_slice(key.as_ref());
         let nonce = GenericArray::from_slice(iv);
         let cipher = Ctr128BE::<Aes256>::new(key, nonce);
@@ -100,21 +91,13 @@ impl CryptoFunctions for DefaultCryptoFunctions {
         Ok(key)
     }
 
-    fn aes_encrypt<T: AsRef<[u8]>>(
-        &self,
-        cipher: &mut dyn StreamCipher,
-        plaintext: T,
-    ) -> Result<Vec<u8>> {
+    fn aes_encrypt(&self, cipher: &mut dyn StreamCipher, plaintext: &[u8]) -> Result<Vec<u8>> {
         let mut buffer = plaintext.as_ref().to_vec();
         cipher.apply_keystream(&mut buffer);
         Ok(buffer)
     }
 
-    fn aes_decrypt<T: AsRef<[u8]>>(
-        &self,
-        cipher: &mut dyn StreamCipher,
-        ciphertext: T,
-    ) -> Result<Vec<u8>> {
+    fn aes_decrypt(&self, cipher: &mut dyn StreamCipher, ciphertext: &[u8]) -> Result<Vec<u8>> {
         let mut buffer = ciphertext.as_ref().to_vec();
         cipher.apply_keystream(&mut buffer);
         Ok(buffer)
@@ -137,14 +120,14 @@ mod test {
     #[test]
     fn test_decode_base64_text() {
         let subject = create_default_crypto_functions();
-        let result = subject.base64_decode("SGVsbG8sIHdvcmxkIQ==").unwrap();
+        let result = subject.base64_decode(b"SGVsbG8sIHdvcmxkIQ==").unwrap();
         assert_eq!(result, b"Hello, world!");
     }
 
     #[test]
     fn test_decode_base64_error() {
         let subject = create_default_crypto_functions();
-        let result = subject.base64_decode("SGVsbG8sIHd@}{/**&(mxkIQ==");
+        let result = subject.base64_decode(b"SGVsbG8sIHd@}{/**&(mxkIQ==");
         assert!(result.is_err())
     }
 
@@ -225,7 +208,7 @@ mod test {
         let encrypt_result = subject.rsa_encrypt(data, &rsa_public_key).unwrap();
         assert_ne!(encrypt_result, data);
         let decrypt_result = subject
-            .rsa_decrypt(encrypt_result, &rsa_private_key)
+            .rsa_decrypt(&encrypt_result, &rsa_private_key)
             .unwrap();
         assert_eq!(&data[..], &decrypt_result[..]);
     }

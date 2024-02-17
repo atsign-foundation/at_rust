@@ -6,5 +6,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+at_chops = { path = "../at_chops" }
 at_errors = { path = "../at_errors" }
+at_sign = { path = "../at_sign" }
 at_tls = { path = "../at_tls" }
+log = "0.4.20"

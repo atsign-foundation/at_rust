@@ -6,11 +6,8 @@ pub use crypto_functions_trait::CryptoFunctions;
 use rsa::{RsaPrivateKey, RsaPublicKey};
 
 /// AtChops is a library that provides a set of high-level cryptographic functions needed within the Atsign protocol.
-pub struct AtChops<T>
-where
-    T: CryptoFunctions,
-{
-    crypto_service: T,
+pub struct AtChops {
+    crypto_service: Box<dyn CryptoFunctions>,
     /// Used for decrypting messages (currently just AES keys).
     rsa_private_key: RsaPrivateKey,
     /// Unused at the moment.
@@ -23,9 +20,9 @@ where
     //? In the future it probably makes sense to get rid of public keys entirely as the private keys are enough to derive them
 }
 
-impl<T: CryptoFunctions> AtChops<T> {
+impl AtChops {
     pub fn new(
-        crypto_service: T,
+        crypto_service: Box<dyn CryptoFunctions>,
         encoded_self_encryption_key: &str,
         encoded_and_encrypted_private_key: &str,
         encoded_and_encrypted_pkam_private_key: &str,
@@ -58,16 +55,16 @@ impl<T: CryptoFunctions> AtChops<T> {
 
     /// Helper method to decrypt the private key using the self encryption key.
     fn decrypt_private_key(
-        crypto_service: &T,
+        crypto_service: &Box<dyn CryptoFunctions>,
         encoded_and_encrypted_private_key: &str,
         encoded_self_encryption_key: &str,
     ) -> Result<Vec<u8>> {
         let decoded_self_encryption_key =
-            crypto_service.base64_decode(encoded_self_encryption_key)?;
+            crypto_service.base64_decode(encoded_self_encryption_key.as_bytes())?;
         let iv: [u8; 16] = [0x00; 16];
-        let mut cipher = crypto_service.construct_aes_cipher(decoded_self_encryption_key, &iv)?;
+        let mut cipher = crypto_service.construct_aes_cipher(&decoded_self_encryption_key, &iv)?;
         let decoded_private_key =
-            crypto_service.base64_decode(encoded_and_encrypted_private_key)?;
+            crypto_service.base64_decode(encoded_and_encrypted_private_key.as_bytes())?;
         let mut output = crypto_service.aes_decrypt(&mut *cipher, &decoded_private_key)?;
 
         // NOTE: Due to the PKCS#7 type of encryption used (on the keys), the output will have padding
@@ -79,7 +76,7 @@ impl<T: CryptoFunctions> AtChops<T> {
         output.truncate(output.len() - usize::from(*last));
         //? The key was originally a string?
         let string_result = String::from_utf8(output)?;
-        let result = crypto_service.base64_decode(&string_result)?;
+        let result = crypto_service.base64_decode(&string_result.as_bytes())?;
         Ok(result)
     }
 
@@ -87,8 +84,8 @@ impl<T: CryptoFunctions> AtChops<T> {
     pub fn sign_challenge(&self, challenge: &str) -> Result<String> {
         let sign_result = self
             .crypto_service
-            .rsa_sign(challenge, &self.pkam_private_key)?;
-        let result = &self.crypto_service.base64_encode(sign_result);
+            .rsa_sign(challenge.as_bytes(), &self.pkam_private_key)?;
+        let result = &self.crypto_service.base64_encode(&sign_result);
         Ok(result.to_owned())
     }
 
@@ -105,10 +102,10 @@ impl<T: CryptoFunctions> AtChops<T> {
     ) -> Result<String> {
         let decoded_symmetric_key = self
             .crypto_service
-            .base64_decode(encoded_and_encrypted_symmetric_key)?;
+            .base64_decode(encoded_and_encrypted_symmetric_key.as_bytes())?;
         let decrypted_symm_key = self
             .crypto_service
-            .rsa_decrypt(decoded_symmetric_key, &self.rsa_private_key)?;
+            .rsa_decrypt(&decoded_symmetric_key, &self.rsa_private_key)?;
         Ok(String::from_utf8(decrypted_symm_key)?)
     }
 
@@ -118,11 +115,15 @@ impl<T: CryptoFunctions> AtChops<T> {
         encoded_public_key: &str,
         data: &str,
     ) -> Result<String> {
-        let decoded_public_key = self.crypto_service.base64_decode(encoded_public_key)?;
+        let decoded_public_key = self
+            .crypto_service
+            .base64_decode(encoded_public_key.as_bytes())?;
         let rsa_public_key = self
             .crypto_service
             .construct_rsa_public_key(&decoded_public_key)?;
-        let encrypted_data = self.crypto_service.rsa_encrypt(data, &rsa_public_key)?;
+        let encrypted_data = self
+            .crypto_service
+            .rsa_encrypt(data.as_bytes(), &rsa_public_key)?;
         Ok(String::from_utf8(encrypted_data)?)
     }
 
@@ -132,12 +133,16 @@ impl<T: CryptoFunctions> AtChops<T> {
         encoded_symmetric_key: &str,
         data: &str,
     ) -> Result<String> {
-        let decoded_symmetric_key = self.crypto_service.base64_decode(encoded_symmetric_key)?;
+        let decoded_symmetric_key = self
+            .crypto_service
+            .base64_decode(encoded_symmetric_key.as_bytes())?;
         let iv: [u8; 16] = [0x00; 16];
         let mut cipher = self
             .crypto_service
             .construct_aes_cipher(&decoded_symmetric_key, &iv)?;
-        let encrypted_data = self.crypto_service.aes_encrypt(&mut *cipher, data)?;
+        let encrypted_data = self
+            .crypto_service
+            .aes_encrypt(&mut *cipher, data.as_bytes())?;
         Ok(self.crypto_service.base64_encode(&encrypted_data))
     }
 
@@ -147,7 +152,9 @@ impl<T: CryptoFunctions> AtChops<T> {
         encoded_symmetric_key: &str,
         data: &str,
     ) -> Result<String> {
-        let decoded_symmetric_key = self.crypto_service.base64_decode(encoded_symmetric_key)?;
+        let decoded_symmetric_key = self
+            .crypto_service
+            .base64_decode(encoded_symmetric_key.as_bytes())?;
         let iv: [u8; 16] = [0x00; 16];
         let mut cipher = self
             .crypto_service
@@ -175,8 +182,8 @@ mod test {
     // Expected result of signing the challenge text
     const CHALLENGE_RESULT: &str = "aTY5Pxod1hzv/9uL9FSqxbmmCT73vFEBRv4qA+k+d6U5hcglzYvAl1MJNY2eQLTFLoFIkx/3pgm0YkjI4aS1hBAyBmMIinGrPGbOuR3PebPqITLhNWdeWZamHrlKY8tjvARtb4k0gb2LgauzhNq3zzm5aS7EU7OYaRy22/fR5fCWXw+ZyFdRYhA9qlFcA7ksct3pJwHSvSlQb2R7YuzN210Xfii43yAgtncz4CUZRcxPL7AD4mUg7dSMu0RMVKIQKsecwhNfh7bgy1zFDGMpOP8DQJ8tJfQiut5u+0yAGM4O31FJ+F7/1pvR0pgr7/O0/4K+BdhdRWNVine335u6lg==";
 
-    fn create_subject() -> Result<AtChops<DefaultCryptoFunctions>> {
-        let crypto_service = DefaultCryptoFunctions::new();
+    fn create_subject() -> Result<AtChops> {
+        let crypto_service = Box::new(DefaultCryptoFunctions::new());
         Ok(AtChops::new(
             crypto_service,
             SELF_ENCRYPTION_KEY_ENCODED,

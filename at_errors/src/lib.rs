@@ -21,6 +21,7 @@ pub enum AtError {
     UnknownAtClientException,
     KeyNotFound,
     UnableToConnectToSecondary,
+    IoError(String),
 }
 
 impl AtError {
@@ -69,12 +70,19 @@ impl fmt::Display for AtError {
             AtError::KeyNotFound => write!(f, "AT0015: Key not found"),
             AtError::UnableToConnectToSecondary => {
                 write!(f, "AT0021: Unable to connect to secondary")
-            } // Match additional error codes here
+            }
+            AtError::IoError(message) => write!(f, "IO error: {}", message),
         }
     }
 }
 
 impl Error for AtError {}
+
+impl From<std::io::Error> for AtError {
+    fn from(error: std::io::Error) -> Self {
+        AtError::IoError(error.to_string())
+    }
+}
 
 #[cfg(test)]
 mod test {

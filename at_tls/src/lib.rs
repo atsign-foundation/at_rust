@@ -16,6 +16,7 @@ impl TlsClient {
     ///
     /// Returns a new `TlsClient` if the connection is successful.
     pub fn connect<T: TlsConnection + 'static>(address: &AtServerAddr) -> std::io::Result<Self> {
+        // TODO: Add a retry mechanism
         let tls_connection = T::connect(address)?;
         Ok(Self {
             tls_connection: Box::new(tls_connection),
@@ -31,6 +32,7 @@ impl TlsClient {
     pub fn read_data(&mut self) -> std::io::Result<Vec<u8>> {
         let mut res = vec![];
         let mut reader = BufReader::new(&mut self.tls_connection);
+        // Newline is the delimiter in the protocol
         let _ = reader.read_until(b'\n', &mut res)?;
         Ok(res)
     }
