@@ -34,7 +34,18 @@ pub trait Verb<'a> {
             return Err(AtError::from_code(code));
         }
 
-        Ok(response.to_string())
+        // Check that it starts with the expected prefix
+        if !response.starts_with(prefix) {
+            return Err(AtError::UnknownAtClientException(format!(
+                "Unexpected response from server: {}",
+                response
+            )));
+        }
+
+        // Trim the prefix and ":" from the response
+        let (_, response) = response.split_at(prefix.len() + 1);
+
+        Ok(response.trim().to_string())
     }
 }
 
@@ -55,7 +66,7 @@ mod tests {
 
     #[test]
     fn test_parse_server_response_success() {
-        let response = b"OK";
+        let response = b"data:OK";
         let result = TestVerb::parse_server_response(response, "data");
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), "OK");
