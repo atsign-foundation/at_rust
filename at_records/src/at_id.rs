@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{fmt::Display, str::FromStr};
 
 /// An atID is the identifier half of the "identifier-value" pair.
 /// Similar to the primary key of a tabular database, the atID must be a unique string which represents the data.
@@ -51,6 +51,12 @@ impl FromStr for AtId {
         Ok(AtId {
             at_id: s.to_string(),
         })
+    }
+}
+
+impl Display for AtId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.at_id)
     }
 }
 
