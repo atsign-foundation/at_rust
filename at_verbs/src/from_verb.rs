@@ -30,10 +30,8 @@ impl<'a> Verb<'a> for FromVerb {
         let data_to_send = format!("from:{}\n", input.at_sign.get_at_sign());
         tls_client.send_data(data_to_send)?;
         let response_data = tls_client.read_data()?;
-        let response_string = Self::parse_server_response(&response_data)?;
-
-        let (_, data) = response_string.split_at(6);
-        info!("Challenge: {}", data);
-        Ok(data.to_owned())
+        let response_string = Self::parse_server_response(&response_data, "pkam")?;
+        info!("Challenge: {}", response_string);
+        Ok(response_string.to_owned())
     }
 }

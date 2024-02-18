@@ -36,18 +36,20 @@ impl<'a> Verb<'a> for PkamVerb {
         let signed_challenge = input
             .at_chops
             .sign_challenge(input.challenge)
-            .map_err(|_| AtError::UnknownAtClientException)?;
+            .map_err(|e| AtError::UnknownAtClientException(e.to_string()))?;
 
         let data_to_send = format!("pkam:{}\n", signed_challenge);
         tls_client.send_data(data_to_send)?;
 
         let response_data = tls_client.read_data()?;
-        let response_string = Self::parse_server_response(&response_data)?;
+        let response_string = Self::parse_server_response(&response_data, "data")?;
 
         if response_string.contains("success") {
             Ok(())
         } else {
-            Err(AtError::UnknownAtClientException)
+            Err(AtError::UnknownAtClientException(String::from(
+                "Server did not respond with success message after pkam verb.",
+            )))
         }
     }
 }

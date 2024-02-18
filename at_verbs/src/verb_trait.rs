@@ -12,18 +12,22 @@ pub trait Verb<'a> {
     fn execute(tls_client: &mut TlsClient, input: Self::Inputs) -> Result<Self::Output>;
 
     /// Parse the response from the atServer into a string checking for exception codes.
-    fn parse_server_response(response: &[u8]) -> Result<String> {
+    /// Also trims the prefix from the response.
+    /// This is a default implementation that can be overridden if the verb needs to parse the response differently.
+    fn parse_server_response(response: &[u8], prefix: &str) -> Result<String> {
         // Parse the response into a string
-        let response = std::str::from_utf8(response).map_err(|_| {
+        let response = std::str::from_utf8(response).map_err(|e| {
             error!("Failed to parse server response. Not valid UTF-8");
-            AtError::UnknownAtClientException
+            AtError::UnknownAtClientException(e.to_string())
         })?;
 
         // Check that it doesn't contain error codes
         if response.starts_with("error") {
             let code = response
                 .split_once(":")
-                .ok_or(AtError::UnknownAtClientException)?
+                .ok_or(AtError::UnknownAtClientException(String::from(
+                    "Unexpected formatting of error message from server",
+                )))?
                 .1
                 .split_at(6)
                 .0;
@@ -52,23 +56,28 @@ mod tests {
     #[test]
     fn test_parse_server_response_success() {
         let response = b"OK";
-        let result = TestVerb::parse_server_response(response);
+        let result = TestVerb::parse_server_response(response, "data");
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), "OK");
     }
 
     #[test]
     fn test_parse_server_response_invalid_utf8() {
-        let response = &[0xff, 0xfe, 0xfd]; // Invalid UTF-8 sequence
-        let result = TestVerb::parse_server_response(response);
+        let response = &[0xf0, 0x28, 0x8c, 0xbc]; // Invalid UTF-8 sequence
+        let result = TestVerb::parse_server_response(response, "data");
         assert!(result.is_err());
-        assert_eq!(result.err().unwrap(), AtError::UnknownAtClientException);
+        assert_eq!(
+            result.err().unwrap(),
+            AtError::UnknownAtClientException(String::from(
+                "invalid utf-8 sequence of 1 bytes from index 0",
+            ))
+        );
     }
 
     #[test]
     fn test_parse_server_response_with_error_code() {
         let response = b"error:AT0001: Error Message";
-        let result = TestVerb::parse_server_response(response);
+        let result = TestVerb::parse_server_response(response, "data");
         assert!(result.is_err());
         assert_eq!(result.err().unwrap(), AtError::ServerException); // Assuming AT0001 maps to ServerException
     }

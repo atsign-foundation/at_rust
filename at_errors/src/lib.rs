@@ -18,7 +18,7 @@ pub enum AtError {
     InboundConnectionLimitExceeded,
     ClientAuthenticationFailed,
     ConnectionException,
-    UnknownAtClientException,
+    UnknownAtClientException(String),
     KeyNotFound,
     UnableToConnectToSecondary,
     IoError(String),
@@ -39,10 +39,12 @@ impl AtError {
             "AT0012" => AtError::InboundConnectionLimitExceeded,
             "AT0401" => AtError::ClientAuthenticationFailed,
             "AT0013" => AtError::ConnectionException,
-            "AT0014" => AtError::UnknownAtClientException,
+            "AT0014" => {
+                AtError::UnknownAtClientException(String::from("Unknown AtClient exception"))
+            }
             "AT0015" => AtError::KeyNotFound,
             "AT0021" => AtError::UnableToConnectToSecondary,
-            _ => AtError::UnknownAtClientException,
+            _ => AtError::UnknownAtClientException(String::from("Unknown AtClient exception")),
         }
     }
 }
@@ -66,7 +68,9 @@ impl fmt::Display for AtError {
                 write!(f, "AT0401: Client authentication failed")
             }
             AtError::ConnectionException => write!(f, "AT0013: Connection exception"),
-            AtError::UnknownAtClientException => write!(f, "AT0014: Unknown AtClient exception"),
+            AtError::UnknownAtClientException(message) => {
+                write!(f, "AT0014: Unknown AtClient exception: {}", message)
+            }
             AtError::KeyNotFound => write!(f, "AT0015: Key not found"),
             AtError::UnableToConnectToSecondary => {
                 write!(f, "AT0021: Unable to connect to secondary")

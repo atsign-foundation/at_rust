@@ -4,6 +4,7 @@
 
 pub mod from_verb;
 pub mod pkam_verb;
+pub mod scan_verb;
 pub mod verb_trait;
 
 mod prelude {
