@@ -4,7 +4,7 @@ use at_server_addr::AtServerAddr;
 use tls_connection_trait::TlsConnection;
 
 pub mod at_server_addr;
-mod rustls_connection;
+pub mod rustls_connection;
 pub mod tls_connection_trait;
 
 pub struct TlsClient {
@@ -25,7 +25,11 @@ impl TlsClient {
 
     /// Sends data to the server.
     pub fn send_data<U: AsRef<[u8]>>(&mut self, data: U) -> std::io::Result<()> {
-        self.tls_connection.write_all(data.as_ref())
+        let data_slice = data.as_ref();
+        let mut data_with_newline = Vec::with_capacity(data_slice.len() + 1);
+        data_with_newline.extend_from_slice(data_slice);
+        data_with_newline.push(b'\n');
+        self.tls_connection.write_all(&data_with_newline)
     }
 
     /// Reads a line from the stream and returns the bytes.

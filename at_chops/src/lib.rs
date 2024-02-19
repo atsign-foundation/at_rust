@@ -1,5 +1,5 @@
 pub mod crypto_functions_trait;
-mod default_crypto_functions;
+pub mod default_crypto_functions;
 
 use anyhow::Result;
 pub use crypto_functions_trait::CryptoFunctions;

@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 rustls = "0.22.2"
 webpki-roots = "0.26.1"
+log = "0.4.20"

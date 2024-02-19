@@ -1,4 +1,4 @@
-use log::info;
+use log::debug;
 use serde_json::{from_str, Value};
 
 /// Struct to store all the secrets associated with an AtSign account.
@@ -34,7 +34,7 @@ impl AtSecrets {
         // Get the info from the file
         let v: Value = from_str(input).map_err(|_| "Failed to read file")?;
 
-        info!("Extracting keys from file");
+        debug!("Extracting keys from file");
 
         // Get the keys
         let aes_pkam_public_key = v["aesPkamPublicKey"]

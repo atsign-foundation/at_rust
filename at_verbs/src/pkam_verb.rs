@@ -31,7 +31,7 @@ impl<'a> Verb<'a> for PkamVerb {
     type Output = ();
 
     fn execute(tls_client: &mut TlsClient, input: Self::Inputs) -> Result<Self::Output> {
-        info!("Signing challenge");
+        debug!("Signing challenge");
 
         let signed_challenge = input
             .at_chops
@@ -39,10 +39,12 @@ impl<'a> Verb<'a> for PkamVerb {
             .map_err(|e| AtError::UnknownAtClientException(e.to_string()))?;
 
         let data_to_send = format!("pkam:{}\n", signed_challenge);
+        debug!("Sending challenge response: {}", &data_to_send);
         tls_client.send_data(data_to_send)?;
 
         let response_data = tls_client.read_data()?;
         let response_string = Self::parse_server_response(&response_data, "data")?;
+        debug!("Received: {}", &response_string);
 
         if response_string.contains("success") {
             Ok(())

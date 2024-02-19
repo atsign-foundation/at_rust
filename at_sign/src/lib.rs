@@ -17,7 +17,7 @@ impl AtSign {
     }
 
     /// Get the name of the atSign without the `@` prefix.
-    pub fn get_at_sign(&self) -> String {
+    pub fn get_at_sign_without_prefix(&self) -> String {
         self.at_sign.to_owned()
     }
 
