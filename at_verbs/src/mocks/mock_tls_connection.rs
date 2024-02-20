@@ -7,6 +7,15 @@ pub struct MockTlsConnection {
     pub to_be_read: Vec<u8>,   // Data that will be "read" by the client
 }
 
+impl MockTlsConnection {
+    pub fn new(written_data: Vec<u8>, to_be_read: Vec<u8>) -> Self {
+        Self {
+            written_data,
+            to_be_read,
+        }
+    }
+}
+
 impl std::io::Read for MockTlsConnection {
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
         // Implement mock read behavior here

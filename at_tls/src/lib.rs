@@ -12,6 +12,11 @@ pub struct TlsClient {
 }
 
 impl TlsClient {
+    /// Create a new client. Only for testing.
+    pub fn new(tls_connection: Box<dyn TlsConnection>) -> Self {
+        Self { tls_connection }
+    }
+
     /// Connects to the specified server address using TLS.
     ///
     /// Returns a new `TlsClient` if the connection is successful.

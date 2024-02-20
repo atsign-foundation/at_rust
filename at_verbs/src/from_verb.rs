@@ -40,17 +40,27 @@ impl<'a> Verb<'a> for FromVerb {
 #[cfg(test)]
 mod tests {
     use crate::mocks::mock_tls_connection::MockTlsConnection;
-    use at_tls::at_server_addr::AtServerAddr;
+    use at_sign::AtSign;
     use at_tls::TlsClient;
 
-    #[test]
-    fn test_mock_tls_connection() {
-        let address = AtServerAddr::new(String::from("example.org"), 443);
-        let mut tls_client = TlsClient::connect::<MockTlsConnection>(&address);
+    use super::{FromVerb, FromVerbInputs, Verb};
 
-        // Now, you can use `mock_connection` in your TlsClient and test its behavior.
-        // For example, you could inject it into a TlsClient instance and test
-        // the `send_data` and `read_data` methods, inspecting `written_data`
-        // and setting `to_be_read` as necessary to simulate different scenarios.
+    #[test]
+    fn test_from_verb_execute() {
+        // Arrange
+        let to_be_read = b"@data:_7089d2f7-b783-474e-826e-0f0561ef70b7@atsign123:bdf16168-c2c8-488c-937a-b0acfb6662a0\n";
+        let connection = Box::new(MockTlsConnection::new(vec![], to_be_read.to_vec()));
+        let mut mock_tls_client = TlsClient::new(connection);
+        let at_sign = AtSign::new(String::from("@atsign123"));
+
+        // Act
+        let from_verb_inputs = FromVerbInputs::new(&at_sign);
+        let result = FromVerb::execute(&mut mock_tls_client, from_verb_inputs).unwrap();
+
+        // Assert
+        assert_eq!(
+            result,
+            "_7089d2f7-b783-474e-826e-0f0561ef70b7@atsign123:bdf16168-c2c8-488c-937a-b0acfb6662a0"
+        )
     }
 }
