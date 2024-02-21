@@ -48,6 +48,7 @@ mod tests {
     #[test]
     fn test_from_verb_execute() {
         // Arrange
+        // What the server will typically respond with
         let to_be_read = b"@data:_7089d2f7-b783-474e-826e-0f0561ef70b7@atsign123:bdf16168-c2c8-488c-937a-b0acfb6662a0\n";
         let connection = Box::new(MockTlsConnection::new(vec![], to_be_read.to_vec()));
         let mut mock_tls_client = TlsClient::new(connection);

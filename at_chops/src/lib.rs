@@ -3,6 +3,7 @@ pub mod default_crypto_functions;
 
 use anyhow::Result;
 pub use crypto_functions_trait::CryptoFunctions;
+use log::{debug, trace};
 use rsa::{RsaPrivateKey, RsaPublicKey};
 
 /// AtChops is a library that provides a set of high-level cryptographic functions needed within the Atsign protocol.
@@ -32,6 +33,10 @@ impl AtChops {
             encoded_and_encrypted_private_key,
             encoded_self_encryption_key,
         )?;
+        trace!(
+            "Decrypted encrypt private key: {:x?}",
+            decrypted_private_key
+        );
         let rsa_private_key = crypto_service.construct_rsa_private_key(&decrypted_private_key)?;
         let rsa_public_key = rsa_private_key.to_public_key();
         let decrypted_pkam_private_key = Self::decrypt_private_key(
@@ -39,9 +44,14 @@ impl AtChops {
             encoded_and_encrypted_pkam_private_key,
             encoded_self_encryption_key,
         )?;
+        trace!(
+            "Decrypted pkam private key: {:x?}",
+            decrypted_pkam_private_key
+        );
         let pkam_private_key =
             crypto_service.construct_rsa_private_key(&decrypted_pkam_private_key)?;
         let pkam_public_key = pkam_private_key.to_public_key();
+        debug!("AtChops initialized");
         Ok(Self {
             crypto_service,
             rsa_private_key,
@@ -85,13 +95,16 @@ impl AtChops {
         let sign_result = self
             .crypto_service
             .rsa_sign(challenge.as_bytes(), &self.pkam_private_key)?;
+        trace!("Signed challenge: {:x?}", sign_result);
         let result = &self.crypto_service.base64_encode(&sign_result);
+        trace!("Signed challenge base64 encoded: {}", result);
         Ok(result.to_owned())
     }
 
     /// Cut a new symmetric key to be used when interacting with a new atSign.
     pub fn create_new_shared_symmetric_key(&self) -> Result<String> {
         let key = self.crypto_service.create_new_aes_key()?;
+        trace!("New AES key: {:x?}", key);
         Ok(self.crypto_service.base64_encode(&key))
     }
 
@@ -106,6 +119,7 @@ impl AtChops {
         let decrypted_symm_key = self
             .crypto_service
             .rsa_decrypt(&decoded_symmetric_key, &self.rsa_private_key)?;
+        trace!("Decrypted symmetric key: {:x?}", decrypted_symm_key);
         Ok(String::from_utf8(decrypted_symm_key)?)
     }
 
@@ -124,6 +138,7 @@ impl AtChops {
         let encrypted_data = self
             .crypto_service
             .rsa_encrypt(data.as_bytes(), &rsa_public_key)?;
+        trace!("Encrypted data with public key: {:x?}", encrypted_data);
         Ok(String::from_utf8(encrypted_data)?)
     }
 
@@ -143,6 +158,7 @@ impl AtChops {
         let encrypted_data = self
             .crypto_service
             .aes_encrypt(&mut *cipher, data.as_bytes())?;
+        trace!("Encrypted data with shared sym key: {:x?}", encrypted_data);
         Ok(self.crypto_service.base64_encode(&encrypted_data))
     }
 
@@ -159,10 +175,11 @@ impl AtChops {
         let mut cipher = self
             .crypto_service
             .construct_aes_cipher(&decoded_symmetric_key, &iv)?;
-        let encrypted_data = self
+        let decrypted_data = self
             .crypto_service
             .aes_decrypt(&mut *cipher, data.as_bytes())?;
-        Ok(self.crypto_service.base64_encode(&encrypted_data))
+        trace!("Decrypted data with shared sym key: {:x?}", decrypted_data);
+        Ok(self.crypto_service.base64_encode(&decrypted_data))
     }
 }
 
