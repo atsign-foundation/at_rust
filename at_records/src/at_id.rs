@@ -3,6 +3,7 @@ use std::{fmt::Display, str::FromStr};
 /// An atID is the identifier half of the "identifier-value" pair.
 /// Similar to the primary key of a tabular database, the atID must be a unique string which represents the data.
 /// Structure: `[cached:]<visibility scope>:<record ID>.<namespace><owner’s atSign>`
+#[derive(Debug)]
 pub struct AtId {
     at_id: String,
 }

@@ -1,3 +1,4 @@
+#[derive(Debug)]
 pub struct RecordMetadata {
     /// A Date and Time derived from the ttb (now + ttb). A Key should be only available after availableFrom.
     available_from: usize,

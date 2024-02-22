@@ -1,16 +1,22 @@
 use at_records::at_id::AtId;
+use at_sign::AtSign;
 use serde::Deserialize;
 
 use super::prelude::*;
 
 pub struct ScanVerbInputs {
     pub show_hidden: bool,
+    pub for_at_sign: Option<AtSign>,
     pub regex: Option<String>,
 }
 
 impl ScanVerbInputs {
-    pub fn new(show_hidden: bool, regex: Option<String>) -> Self {
-        Self { show_hidden, regex }
+    pub fn new(show_hidden: bool, for_at_sign: Option<AtSign>, regex: Option<String>) -> Self {
+        Self {
+            show_hidden,
+            for_at_sign,
+            regex,
+        }
     }
 }
 
@@ -28,6 +34,9 @@ impl<'a> Verb<'a> for ScanVerb {
         let mut string_buf = String::from("scan");
         if input.show_hidden {
             string_buf.push_str(":showhidden:true");
+        }
+        if let Some(at_sign) = input.for_at_sign {
+            string_buf.push_str(&format!(":forAtSign:{}", at_sign));
         }
         if let Some(regex) = input.regex {
             string_buf.push_str(&format!(" {}", regex));

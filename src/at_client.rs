@@ -1,11 +1,13 @@
 use anyhow::Result;
 use at_chops::{default_crypto_functions::DefaultCryptoFunctions, AtChops};
+use at_records::at_id::AtId;
 use at_secrets::AtSecrets;
 use at_sign::AtSign;
 use at_tls::{at_server_addr::AtServerAddr, rustls_connection::RustlsConnection, TlsClient};
 use at_verbs::{
     from_verb::{FromVerb, FromVerbInputs},
     pkam_verb::{PkamVerb, PkamVerbInputs},
+    scan_verb::{ScanVerb, ScanVerbInputs},
     verb_trait::Verb,
 };
 use log::{debug, info};
@@ -59,6 +61,7 @@ impl AtClient {
         Ok(())
     }
 
+    /// Connects to the atsign "DNS" server to get the server address of the given at_sign.
     fn get_server_addr_for_at_sign(at_sign: &AtSign) -> Result<AtServerAddr> {
         debug!("Getting {} server address", at_sign);
         let address = AtServerAddr::new(String::from("root.atsign.org"), 64);
@@ -72,5 +75,13 @@ impl AtClient {
         let host = addr[0].to_string();
         let port = addr[1].parse::<u16>()?;
         Ok(AtServerAddr::new(host, port))
+    }
+
+    /// Execute the scan verb to fetch all at_ids.
+    pub fn scan(&mut self, show_hidden: bool) -> Result<Vec<AtId>> {
+        debug!("Fetch all at_ids");
+        let scan_verb_args = ScanVerbInputs::new(show_hidden, None, None);
+        let scan_results = ScanVerb::execute(&mut self.tls_client, scan_verb_args)?;
+        Ok(scan_results)
     }
 }

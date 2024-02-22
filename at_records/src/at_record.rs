@@ -4,6 +4,7 @@ use crate::{at_id::AtId, record_metadata::RecordMetadata};
 
 /// atRecords are the data records that are stored by the atServers. We use the common key-value pair format.
 /// By this, we mean non-cryptographic key, so we instead call them "identifier-value pairs" to prevent confusion.
+#[derive(Debug)]
 pub struct AtRecord {
     at_id: AtId,
     value: AtValue,
@@ -25,6 +26,7 @@ impl AtRecord {
 }
 
 /// The data that can be stored in an atRecord.
+#[derive(Debug)]
 pub enum AtValue {
     Text(String),
     Binary(Vec<u8>),
