@@ -1,6 +1,6 @@
 use anyhow::Result;
 use at_chops::{default_crypto_functions::DefaultCryptoFunctions, AtChops};
-use at_records::at_id::AtId;
+use at_records::at_key::AtKey;
 use at_secrets::AtSecrets;
 use at_sign::AtSign;
 use at_tls::{at_server_addr::AtServerAddr, rustls_connection::RustlsConnection, TlsClient};
@@ -78,10 +78,11 @@ impl AtClient {
     }
 
     /// Execute the scan verb to fetch all at_ids.
-    pub fn scan(&mut self, show_hidden: bool) -> Result<Vec<AtId>> {
+    pub fn scan(&mut self, show_hidden: bool) -> Result<Vec<AtKey>> {
         debug!("Fetch all at_ids");
         let scan_verb_args = ScanVerbInputs::new(show_hidden, None, None);
         let scan_results = ScanVerb::execute(&mut self.tls_client, scan_verb_args)?;
+        debug!("Fetched all at_ids successfully: {:?}", scan_results);
         Ok(scan_results)
     }
 }

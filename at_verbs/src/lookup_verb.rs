@@ -1,5 +1,5 @@
 use at_records::{
-    at_id::AtId,
+    at_key::AtKey,
     at_record::{AtRecord, AtValue},
     record_metadata::RecordMetadata,
 };
@@ -8,14 +8,14 @@ use super::prelude::*;
 
 pub struct LookupVerbInputs<'a> {
     /// The atId of the key-value pair to be looked up.
-    at_id: &'a AtId,
+    at_id: &'a AtKey,
 
     /// The type of data to request from the server.
     return_type: LookupReturnType,
 }
 
 impl<'a> LookupVerbInputs<'a> {
-    pub fn new(at_id: &'a AtId, return_type: LookupReturnType) -> Self {
+    pub fn new(at_id: &'a AtKey, return_type: LookupReturnType) -> Self {
         Self { at_id, return_type }
     }
 }

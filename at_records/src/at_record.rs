@@ -1,4 +1,4 @@
-use crate::{at_id::AtId, record_metadata::RecordMetadata};
+use crate::{at_key::AtKey, record_metadata::RecordMetadata};
 
 //? There should probably be a way to build these records (e.g. builder method) which provides sane defaults
 
@@ -6,13 +6,13 @@ use crate::{at_id::AtId, record_metadata::RecordMetadata};
 /// By this, we mean non-cryptographic key, so we instead call them "identifier-value pairs" to prevent confusion.
 #[derive(Debug)]
 pub struct AtRecord {
-    at_id: AtId,
+    at_id: AtKey,
     value: AtValue,
     metadata: RecordMetadata,
 }
 
 impl AtRecord {
-    pub fn new(at_id: AtId, value: AtValue, metadata: RecordMetadata) -> Self {
+    pub fn new(at_id: AtKey, value: AtValue, metadata: RecordMetadata) -> Self {
         Self {
             at_id,
             value,

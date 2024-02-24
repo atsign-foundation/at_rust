@@ -10,7 +10,7 @@ impl AtSign {
     /// Create a new atSign. `at_sign` should be a string without the `@` prefix.
     pub fn new(at_sign: String) -> AtSign {
         assert!(
-            at_sign.len() < 55,
+            at_sign.len() <= 55,
             "at_sign must be less than 55 characters"
         );
         AtSign { at_sign }
