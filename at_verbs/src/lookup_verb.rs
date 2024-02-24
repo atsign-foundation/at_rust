@@ -8,15 +8,18 @@ use super::prelude::*;
 
 pub struct LookupVerbInputs<'a> {
     /// The atId of the key-value pair to be looked up.
-    at_id: &'a AtKey,
+    at_key: &'a AtKey,
 
     /// The type of data to request from the server.
     return_type: LookupReturnType,
 }
 
 impl<'a> LookupVerbInputs<'a> {
-    pub fn new(at_id: &'a AtKey, return_type: LookupReturnType) -> Self {
-        Self { at_id, return_type }
+    pub fn new(at_key: &'a AtKey, return_type: LookupReturnType) -> Self {
+        Self {
+            at_key,
+            return_type,
+        }
     }
 }
 
@@ -29,6 +32,7 @@ pub enum LookupReturnType {
     All,
 }
 
+#[derive(Debug)]
 pub enum LookupVerbOutput {
     Data(AtValue),
     Meta(RecordMetadata),
@@ -52,8 +56,13 @@ impl<'a> Verb<'a> for LookupVerb {
             LookupReturnType::All => string_buf.push_str("all:"),
         }
 
-        string_buf.push_str(&input.at_id.to_string());
-        // TODO: Might need to push a newline here.
+        let formatted_at_key = format!(
+            "{}.{}{}",
+            &input.at_key.record_id,
+            input.at_key.namespace.as_ref().unwrap_or(&String::from("")),
+            &input.at_key.owner.get_at_sign_with_prefix()
+        );
+        string_buf.push_str(formatted_at_key.as_str());
 
         tls_client.send_data(string_buf)?;
 
@@ -61,7 +70,10 @@ impl<'a> Verb<'a> for LookupVerb {
         let response_string = Self::parse_server_response(&response_data, "data")?;
 
         // TODO: Parse the response_string into the appropriate type.
-
-        todo!();
+        match input.return_type {
+            LookupReturnType::Data => Ok(LookupVerbOutput::Data(AtValue::Text(response_string))),
+            LookupReturnType::Meta => todo!(),
+            LookupReturnType::All => todo!(),
+        }
     }
 }

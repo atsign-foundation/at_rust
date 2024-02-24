@@ -1,6 +1,7 @@
 use std::io::{BufRead, BufReader};
 
 use at_server_addr::AtServerAddr;
+use log::debug;
 use tls_connection_trait::TlsConnection;
 
 pub mod at_server_addr;
@@ -34,6 +35,10 @@ impl TlsClient {
         let mut data_with_newline = Vec::with_capacity(data_slice.len() + 1);
         data_with_newline.extend_from_slice(data_slice);
         data_with_newline.push(b'\n');
+        debug!(
+            "Sending data: {:?}",
+            String::from_utf8_lossy(&data_with_newline)
+        );
         self.tls_connection.write_all(&data_with_newline)
     }
 
@@ -43,6 +48,7 @@ impl TlsClient {
         let mut reader = BufReader::new(&mut self.tls_connection);
         // Newline is the delimiter in the protocol
         let _ = reader.read_until(b'\n', &mut res)?;
+        debug!("Reading data: {:?}", String::from_utf8_lossy(&res));
         Ok(res)
     }
 }

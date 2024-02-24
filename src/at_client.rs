@@ -6,6 +6,7 @@ use at_sign::AtSign;
 use at_tls::{at_server_addr::AtServerAddr, rustls_connection::RustlsConnection, TlsClient};
 use at_verbs::{
     from_verb::{FromVerb, FromVerbInputs},
+    lookup_verb::{LookupReturnType, LookupVerb, LookupVerbInputs, LookupVerbOutput},
     pkam_verb::{PkamVerb, PkamVerbInputs},
     scan_verb::{ScanVerb, ScanVerbInputs},
     verb_trait::Verb,
@@ -84,5 +85,14 @@ impl AtClient {
         let scan_results = ScanVerb::execute(&mut self.tls_client, scan_verb_args)?;
         debug!("Fetched all at_ids successfully: {:?}", scan_results);
         Ok(scan_results)
+    }
+
+    /// Lookup the value of the given at_key.
+    pub fn lookup(&mut self, at_key: &AtKey) -> Result<LookupVerbOutput> {
+        debug!("Looking up at_key");
+        let lookup_verb_args = LookupVerbInputs::new(at_key, LookupReturnType::Data);
+        let lookup_result = LookupVerb::execute(&mut self.tls_client, lookup_verb_args)?;
+        debug!("Lookup ran successfully: {:?}", lookup_result);
+        Ok(lookup_result)
     }
 }

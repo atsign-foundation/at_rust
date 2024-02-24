@@ -1,6 +1,7 @@
 use std::{fmt::Display, str::FromStr};
 
 use at_sign::AtSign;
+use log::{error, trace};
 use regex::Regex;
 
 /**
@@ -38,7 +39,21 @@ Example: `cached:@bob:record1.namespace1@alice` -> Cached data that belongs to @
 - The user who has cached the key should not be allowed to update the cached key. An atSign owner who has created and shared the key should be allowed to update a cached key, and if the "autoNotify" config parameters is set to true, the updated value should be notified (please refer to the notify verb) and the cached key updated with the new value. If the user who originally shared the keys set the CCD (Cascade delete) to true, the cached key will be deleted when the original key is deleted.
 */
 #[derive(Debug)]
-pub struct AtKey(String);
+pub struct AtKey {
+    pub record_id: String,
+    pub namespace: Option<String>,
+    pub owner: AtSign,
+    pub is_cached: bool,
+    pub visibility_scope: Visibility,
+}
+
+#[derive(Debug)]
+pub enum Visibility {
+    Public,
+    Private,
+    Internal,
+    Shared(AtSign),
+}
 
 impl AtKey {
     pub fn new_public_key<T: AsRef<str>>(record_id: T, namespace: T, owner: AtSign) -> Self {
@@ -46,12 +61,13 @@ impl AtKey {
             record_id.as_ref().len() + namespace.as_ref().len() + owner.to_string().len() <= 240,
             "AtKey must be less than or equal to 240 characters"
         );
-        let mut buffer = String::from("public:");
-        buffer.push_str(record_id.as_ref());
-        buffer.push('.');
-        buffer.push_str(namespace.as_ref());
-        buffer.push_str(&owner.get_at_sign_with_prefix());
-        AtKey(buffer)
+        AtKey {
+            record_id: record_id.as_ref().to_string(),
+            namespace: Some(namespace.as_ref().to_string()),
+            owner,
+            is_cached: false,
+            visibility_scope: Visibility::Public,
+        }
     }
 
     pub fn new_private_key<T: AsRef<str>>(
@@ -69,14 +85,13 @@ impl AtKey {
                 <= 240,
             "AtKey must be less than or equal to 240 characters"
         );
-        let mut buffer = String::from("private:");
-        buffer.push_str(record_id.as_ref());
-        if let Some(namespace) = namespace {
-            buffer.push('.');
-            buffer.push_str(namespace.as_ref());
+        AtKey {
+            record_id: record_id.as_ref().to_string(),
+            namespace: namespace.map(|ns| ns.as_ref().to_string()),
+            owner,
+            is_cached: false,
+            visibility_scope: Visibility::Private,
         }
-        buffer.push_str(&owner.get_at_sign_with_prefix());
-        AtKey(buffer)
     }
 
     pub fn new_user_key<T: AsRef<str>>(
@@ -89,13 +104,13 @@ impl AtKey {
             record_id.as_ref().len() + namespace.as_ref().len() + owner.to_string().len() <= 240,
             "AtKey must be less than or equal to 240 characters"
         );
-        let mut buffer = shared_with.get_at_sign_with_prefix();
-        buffer.push(':');
-        buffer.push_str(record_id.as_ref());
-        buffer.push('.');
-        buffer.push_str(namespace.as_ref());
-        buffer.push_str(&owner.get_at_sign_with_prefix());
-        AtKey(buffer)
+        AtKey {
+            record_id: record_id.as_ref().to_string(),
+            namespace: Some(namespace.as_ref().to_string()),
+            owner,
+            is_cached: false,
+            visibility_scope: Visibility::Shared(shared_with),
+        }
     }
 
     pub fn new_internal_key<T: AsRef<str>>(record_id: T, namespace: T, owner: AtSign) -> Self {
@@ -103,12 +118,13 @@ impl AtKey {
             record_id.as_ref().len() + namespace.as_ref().len() + owner.to_string().len() <= 240,
             "AtKey must be less than or equal to 240 characters"
         );
-        let mut buffer = String::from("_");
-        buffer.push_str(record_id.as_ref());
-        buffer.push('.');
-        buffer.push_str(namespace.as_ref());
-        buffer.push_str(&owner.get_at_sign_with_prefix());
-        AtKey(buffer)
+        AtKey {
+            record_id: record_id.as_ref().to_string(),
+            namespace: Some(namespace.as_ref().to_string()),
+            owner,
+            is_cached: false,
+            visibility_scope: Visibility::Internal,
+        }
     }
 
     pub fn new_cached_key<T: AsRef<str>>(
@@ -121,20 +137,42 @@ impl AtKey {
             record_id.as_ref().len() + namespace.as_ref().len() + owner.to_string().len() <= 240,
             "AtKey must be less than or equal to 240 characters"
         );
-        let mut buffer = String::from("cached:");
-        buffer.push_str(&cached_by.get_at_sign_with_prefix());
-        buffer.push(':');
-        buffer.push_str(record_id.as_ref());
-        buffer.push('.');
-        buffer.push_str(namespace.as_ref());
-        buffer.push_str(&owner.get_at_sign_with_prefix());
-        AtKey(buffer)
+        AtKey {
+            record_id: record_id.as_ref().to_string(),
+            namespace: Some(namespace.as_ref().to_string()),
+            owner,
+            is_cached: true,
+            visibility_scope: Visibility::Shared(cached_by),
+        }
     }
 }
 
 impl Display for AtKey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
+        let mut buffer = String::from("");
+        if self.is_cached {
+            buffer.push_str("cached:");
+        };
+        match &self.visibility_scope {
+            Visibility::Public => {
+                buffer.push_str("public:");
+            }
+            Visibility::Private => {
+                buffer.push_str("private:");
+            }
+            Visibility::Internal => {
+                buffer.push_str("_");
+            }
+            Visibility::Shared(shared_with) => {
+                buffer.push_str(&format!("{}:", shared_with.get_at_sign_with_prefix()));
+            }
+        };
+        buffer.push_str(&self.record_id);
+        if let Some(namespace) = &self.namespace {
+            buffer.push_str(&format!(".{}", namespace));
+        }
+        buffer.push_str(&self.owner.get_at_sign_with_prefix());
+        write!(f, "{}", buffer)
     }
 }
 
@@ -144,6 +182,9 @@ impl FromStr for AtKey {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         // TODO: Improve performance by only creating regex if the previous one doesn't match
         // TODO: Improve performance by putting most common case first
+
+        // TODO: Check that it works with namespaces with multiple periods
+        trace!("Constructing at_key from_str");
 
         // Regex patterns for each key type
         let public_re =
@@ -162,18 +203,21 @@ impl FromStr for AtKey {
 
         // Attempt to match each pattern and extract components
         if let Some(caps) = public_re.captures(s) {
+            trace!("Matched public key pattern");
             Ok(AtKey::new_public_key(
                 caps["record_id"].to_string(),
                 caps["namespace"].to_string(),
                 AtSign::new(caps["owner"].to_string()),
             ))
         } else if let Some(caps) = private_re.captures(s) {
+            trace!("Matched private key pattern");
             Ok(AtKey::new_private_key(
                 caps["record_id"].to_string(),
                 caps.name("namespace").map(|m| m.as_str().to_string()), // Converts Option<Match> to Option<String>
                 AtSign::new(caps["owner"].to_string()),
             ))
         } else if let Some(caps) = user_re.captures(s) {
+            trace!("Matched user key pattern");
             Ok(AtKey::new_user_key(
                 caps["record_id"].to_string(),
                 caps["namespace"].to_string(),
@@ -181,12 +225,14 @@ impl FromStr for AtKey {
                 AtSign::new(caps["shared_with"].to_string()),
             ))
         } else if let Some(caps) = internal_re.captures(s) {
+            trace!("Matched internal key pattern");
             Ok(AtKey::new_internal_key(
                 caps["record_id"].to_string(),
                 caps["namespace"].to_string(),
                 AtSign::new(caps["owner"].to_string()),
             ))
         } else if let Some(caps) = cached_re.captures(s) {
+            trace!("Matched cached key pattern");
             Ok(AtKey::new_cached_key(
                 caps["record_id"].to_string(),
                 caps["namespace"].to_string(),
@@ -194,6 +240,7 @@ impl FromStr for AtKey {
                 AtSign::new(caps["cached_by"].to_string()),
             ))
         } else {
+            error!("Input didn't match any expected key format.");
             Err("Input does not match any expected key format. Expected format: [cached:]<visibility scope>:<record ID>.<namespace><owner’s atSign>")
         }
     }
