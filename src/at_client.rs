@@ -80,7 +80,7 @@ impl AtClient {
 
     /// Execute the scan verb to fetch all at_ids.
     pub fn scan(&mut self, show_hidden: bool) -> Result<Vec<AtKey>> {
-        debug!("Fetch all at_ids");
+        debug!("Fetching all at_ids");
         let scan_verb_args = ScanVerbInputs::new(show_hidden, None, None);
         let scan_results = ScanVerb::execute(&mut self.tls_client, scan_verb_args)?;
         debug!("Fetched at_ids successfully: {:?}", scan_results);

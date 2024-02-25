@@ -2,13 +2,7 @@ use at_records::{at_key::AtKey, at_record::AtValue};
 
 use super::prelude::*;
 
-pub struct UpdateVerbInputs<'a> {
-    /// The AtKey of the key-value pair to be looked up.
-    at_key: &'a AtKey,
-
-    /// The value to be updated.
-    value: AtValue,
-
+pub struct UpdateOptions {
     /// Time to live in milliseconds
     ttl: Option<usize>,
 
@@ -22,6 +16,50 @@ pub struct UpdateVerbInputs<'a> {
     ccd: Option<bool>,
 }
 
+impl UpdateOptions {
+    pub fn new(
+        ttl: Option<usize>,
+        ttb: Option<usize>,
+        ttr: Option<usize>,
+        ccd: Option<bool>,
+    ) -> Self {
+        Self { ttl, ttb, ttr, ccd }
+    }
+}
+
+pub struct UpdateVerbInputs<'a> {
+    /// The AtKey of the key-value pair to be looked up.
+    at_key: &'a AtKey,
+
+    /// The value to be updated.
+    value: AtValue,
+
+    /// The options to be used for the update operation.
+    update_options: Option<UpdateOptions>,
+}
+
+impl<'a> UpdateVerbInputs<'a> {
+    pub fn new(at_key: &'a AtKey, value: AtValue) -> Self {
+        Self {
+            at_key,
+            value,
+            update_options: None,
+        }
+    }
+
+    pub fn new_with_options(
+        at_key: &'a AtKey,
+        value: AtValue,
+        update_options: UpdateOptions,
+    ) -> Self {
+        Self {
+            at_key,
+            value,
+            update_options: Some(update_options),
+        }
+    }
+}
+
 /// The update verb should be used to perform create/update operations on the atServer.
 /// The update verb requires the owner of the atServer to authenticate themself to the atServer using from and cram verbs.
 pub struct UpdateVerb;
@@ -33,20 +71,22 @@ impl<'a> Verb<'a> for UpdateVerb {
     fn execute(tls_client: &mut TlsClient, input: Self::Inputs) -> Result<Self::Output> {
         let mut string_buf = String::from("update:");
 
-        if let Some(ttl) = input.ttl {
-            string_buf.push_str(format!("ttl:{},", ttl).as_str());
-        }
+        if let Some(update_options) = input.update_options {
+            if let Some(ttl) = update_options.ttl {
+                string_buf.push_str(format!("ttl:{},", ttl).as_str());
+            }
 
-        if let Some(ttb) = input.ttb {
-            string_buf.push_str(format!("ttb:{},", ttb).as_str());
-        }
+            if let Some(ttb) = update_options.ttb {
+                string_buf.push_str(format!("ttb:{},", ttb).as_str());
+            }
 
-        if let Some(ttr) = input.ttr {
-            string_buf.push_str(format!("ttr:{},", ttr).as_str());
-        }
+            if let Some(ttr) = update_options.ttr {
+                string_buf.push_str(format!("ttr:{},", ttr).as_str());
+            }
 
-        if let Some(ccd) = input.ccd {
-            string_buf.push_str(format!("ccd:{},", ccd).as_str());
+            if let Some(ccd) = update_options.ccd {
+                string_buf.push_str(format!("ccd:{},", ccd).as_str());
+            }
         }
 
         // Private and internal are not supported. Throw error?
