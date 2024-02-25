@@ -6,16 +6,16 @@ use at_records::{
 
 use super::prelude::*;
 
-pub struct LookupVerbInputs<'a> {
+pub struct PlookupVerbInputs<'a> {
     /// The AtKey of the key-value pair to be looked up.
     at_key: &'a AtKey,
 
     /// The type of data to request from the server.
-    return_type: LookupReturnType,
+    return_type: PlookupReturnType,
 }
 
-impl<'a> LookupVerbInputs<'a> {
-    pub fn new(at_key: &'a AtKey, return_type: LookupReturnType) -> Self {
+impl<'a> PlookupVerbInputs<'a> {
+    pub fn new(at_key: &'a AtKey, return_type: PlookupReturnType) -> Self {
         Self {
             at_key,
             return_type,
@@ -23,7 +23,7 @@ impl<'a> LookupVerbInputs<'a> {
     }
 }
 
-pub enum LookupReturnType {
+pub enum PlookupReturnType {
     /// Just the data.
     Data,
     /// Just the metadata.
@@ -33,27 +33,27 @@ pub enum LookupReturnType {
 }
 
 #[derive(Debug)]
-pub enum LookupVerbOutput {
+pub enum PlookupVerbOutput {
     Data(AtValue),
     Meta(RecordMetadata),
     All(AtRecord),
 }
 
-/// The lookup verb should be used to fetch the value of the key shared by another atSign user.
-/// If there is a public and user key with the same name then the result should be based on whether the user is trying to lookup is authenticated or not.
-/// If the user is authenticated then the user key has to be returned, otherwise the public key has to be returned.
-pub struct LookupVerb;
+/// The plookup verb should be used to fetch the value of the public key shared by another atSign user.
+pub struct PlookupVerb;
 
-impl<'a> Verb<'a> for LookupVerb {
-    type Inputs = LookupVerbInputs<'a>;
-    type Output = LookupVerbOutput;
+impl<'a> Verb<'a> for PlookupVerb {
+    type Inputs = PlookupVerbInputs<'a>;
+    type Output = PlookupVerbOutput;
 
     fn execute(tls_client: &mut TlsClient, input: Self::Inputs) -> Result<Self::Output> {
+        // TODO: Implement bypassCache
+
         let mut string_buf = String::from("lookup:");
         match input.return_type {
-            LookupReturnType::Data => {}
-            LookupReturnType::Meta => string_buf.push_str("meta:"),
-            LookupReturnType::All => string_buf.push_str("all:"),
+            PlookupReturnType::Data => {}
+            PlookupReturnType::Meta => string_buf.push_str("meta:"),
+            PlookupReturnType::All => string_buf.push_str("all:"),
         }
 
         let formatted_at_key = format!(
@@ -71,9 +71,9 @@ impl<'a> Verb<'a> for LookupVerb {
 
         // TODO: Parse the response_string into the appropriate type.
         match input.return_type {
-            LookupReturnType::Data => Ok(LookupVerbOutput::Data(AtValue::Text(response_string))),
-            LookupReturnType::Meta => todo!(),
-            LookupReturnType::All => todo!(),
+            PlookupReturnType::Data => Ok(PlookupVerbOutput::Data(AtValue::Text(response_string))),
+            PlookupReturnType::Meta => todo!(),
+            PlookupReturnType::All => todo!(),
         }
     }
 }

@@ -83,7 +83,7 @@ impl AtClient {
         debug!("Fetch all at_ids");
         let scan_verb_args = ScanVerbInputs::new(show_hidden, None, None);
         let scan_results = ScanVerb::execute(&mut self.tls_client, scan_verb_args)?;
-        debug!("Fetched all at_ids successfully: {:?}", scan_results);
+        debug!("Fetched at_ids successfully: {:?}", scan_results);
         Ok(scan_results)
     }
 

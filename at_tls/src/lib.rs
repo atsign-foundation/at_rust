@@ -30,6 +30,8 @@ impl TlsClient {
     }
 
     /// Sends data to the server.
+    /// Data is expected to be one line (no newlines in the middle of the data).
+    /// Appends a newline to the data as this is the delimiter in the protocol.
     pub fn send_data<U: AsRef<[u8]>>(&mut self, data: U) -> std::io::Result<()> {
         let data_slice = data.as_ref();
         let mut data_with_newline = Vec::with_capacity(data_slice.len() + 1);
