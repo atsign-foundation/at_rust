@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct AtSign {
     /// The atSign of the client device. Without the `@` prefix.
     at_sign: String,

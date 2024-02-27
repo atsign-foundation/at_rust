@@ -27,16 +27,19 @@ pub enum LookupReturnType {
     /// Just the data.
     Data,
     /// Just the metadata.
-    Meta,
+    Metadata,
     /// Both the data and the metadata.
     All,
 }
 
 #[derive(Debug)]
 pub enum LookupVerbOutput {
-    Data(AtValue),
-    Meta(RecordMetadata),
-    All(AtRecord),
+    /// Just the data represented as a string.
+    Data(String),
+    /// Metadata represented as JSON.
+    Metadata(String),
+    /// Both the data and the metadata represented as JSON.
+    All(String),
 }
 
 /// The lookup verb should be used to fetch the value of the key shared by another atSign user.
@@ -52,14 +55,17 @@ impl<'a> Verb<'a> for LookupVerb {
         let mut string_buf = String::from("lookup:");
         match input.return_type {
             LookupReturnType::Data => {}
-            LookupReturnType::Meta => string_buf.push_str("meta:"),
+            LookupReturnType::Metadata => string_buf.push_str("meta:"),
             LookupReturnType::All => string_buf.push_str("all:"),
         }
 
         let formatted_at_key = format!(
-            "{record_id}.{namespace}{owner}",
+            "{record_id}{namespace}{owner}",
             record_id = &input.at_key.record_id,
-            namespace = input.at_key.namespace.as_ref().unwrap_or(&String::from("")),
+            namespace = match &input.at_key.namespace {
+                Some(value) => format!(".{}", value),
+                None => String::from(""),
+            },
             owner = &input.at_key.owner.get_at_sign_with_prefix()
         );
         string_buf.push_str(formatted_at_key.as_str());
@@ -71,8 +77,8 @@ impl<'a> Verb<'a> for LookupVerb {
 
         // TODO: Parse the response_string into the appropriate type.
         match input.return_type {
-            LookupReturnType::Data => Ok(LookupVerbOutput::Data(AtValue::Text(response_string))),
-            LookupReturnType::Meta => todo!(),
+            LookupReturnType::Data => Ok(LookupVerbOutput::Data(response_string)),
+            LookupReturnType::Metadata => todo!(),
             LookupReturnType::All => todo!(),
         }
     }

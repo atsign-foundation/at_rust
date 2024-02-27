@@ -175,11 +175,13 @@ impl AtChops {
         let mut cipher = self
             .crypto_service
             .construct_aes_cipher(&decoded_symmetric_key, &iv)?;
+        let decoded_data = self.crypto_service.base64_decode(data.as_bytes())?;
         let decrypted_data = self
             .crypto_service
-            .aes_decrypt(&mut *cipher, data.as_bytes())?;
+            .aes_decrypt(&mut *cipher, &decoded_data)?;
         trace!("Decrypted data with shared sym key: {:x?}", decrypted_data);
-        Ok(self.crypto_service.base64_encode(&decrypted_data))
+        // TODO: Will probably want to return the binary data and convert to a String in the caller
+        Ok(String::from_utf8(decrypted_data)?)
     }
 }
 

@@ -1,3 +1,5 @@
+use at_chops::AtChops;
+
 use crate::{at_key::AtKey, record_metadata::RecordMetadata};
 
 //? There should probably be a way to build these records (e.g. builder method) which provides sane defaults
@@ -30,4 +32,12 @@ impl AtRecord {
 pub enum AtValue {
     Text(String),
     Binary(Vec<u8>),
+}
+
+impl AtValue {
+    /// Create a new AtValue from a base64 encoded and encrypted string.
+    // Should probably only pass in functions instead of the whole AtChops
+    pub fn from_server(encoded_encrypted_data: &str, at_chops: &AtChops) -> Self {
+        todo!()
+    }
 }
