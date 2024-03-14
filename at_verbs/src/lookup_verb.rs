@@ -59,6 +59,7 @@ impl<'a> Verb<'a> for LookupVerb {
             LookupReturnType::All => string_buf.push_str("all:"),
         }
 
+        // Lookup verb shouldn't include who the data is shared with
         let formatted_at_key = format!(
             "{record_id}{namespace}{owner}",
             record_id = &input.at_key.record_id,

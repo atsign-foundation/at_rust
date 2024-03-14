@@ -1,7 +1,7 @@
 pub mod crypto_functions_trait;
 pub mod default_crypto_functions;
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 pub use crypto_functions_trait::CryptoFunctions;
 use log::{debug, trace};
 use rsa::{RsaPrivateKey, RsaPublicKey};
@@ -75,17 +75,14 @@ impl AtChops {
         let mut cipher = crypto_service.construct_aes_cipher(&decoded_self_encryption_key, &iv)?;
         let decoded_private_key =
             crypto_service.base64_decode(encoded_and_encrypted_private_key.as_bytes())?;
-        let mut output = crypto_service.aes_decrypt(&mut *cipher, &decoded_private_key)?;
+        let output = crypto_service.aes_decrypt(&mut *cipher, &decoded_private_key)?;
 
-        // NOTE: Due to the PKCS#7 type of encryption used (on the keys), the output will have padding
-
-        // NOTE: Might be worth converting to a char type then using .is_ascii_hexdigit() (or similar)
-
-        // Get the last byte, which is the number of padding bytes
-        let last = output.last().unwrap();
-        output.truncate(output.len() - usize::from(*last));
+        let unpadded_data = match Self::pkcs7_unpad(&output) {
+            Ok(it) => it,
+            Err(err) => return Err(anyhow!(err)),
+        };
         //? The key was originally a string?
-        let string_result = String::from_utf8(output)?;
+        let string_result = String::from_utf8(unpadded_data)?;
         let result = crypto_service.base64_decode(&string_result.as_bytes())?;
         Ok(result)
     }
@@ -108,7 +105,7 @@ impl AtChops {
         Ok(self.crypto_service.base64_encode(&key))
     }
 
-    /// Decrypt "their" symmetric key with "our" private key.
+    /// Decrypt symmetric key with private key.
     pub fn decrypt_symmetric_key(
         &self,
         encoded_and_encrypted_symmetric_key: &str,
@@ -121,6 +118,15 @@ impl AtChops {
             .rsa_decrypt(&decoded_symmetric_key, &self.rsa_private_key)?;
         trace!("Decrypted symmetric key: {:x?}", decrypted_symm_key);
         Ok(String::from_utf8(decrypted_symm_key)?)
+    }
+
+    /// Encrypt data with our RSA public key (likely just the symmetric key, but could be anything else too)
+    pub fn encrypt_data_with_our_public_key(&self, data: &str) -> Result<String> {
+        let encrypted_data = self
+            .crypto_service
+            .rsa_encrypt(data.as_bytes(), &self.rsa_public_key)?;
+        trace!("Encrypted data with our public key: {:x?}", encrypted_data);
+        Ok(self.crypto_service.base64_encode(&encrypted_data))
     }
 
     /// Encrypt data with "their" RSA public key.
@@ -139,7 +145,7 @@ impl AtChops {
             .crypto_service
             .rsa_encrypt(data.as_bytes(), &rsa_public_key)?;
         trace!("Encrypted data with public key: {:x?}", encrypted_data);
-        Ok(String::from_utf8(encrypted_data)?)
+        Ok(self.crypto_service.base64_encode(&encrypted_data))
     }
 
     /// Encrypt data with AES symm key.
@@ -155,9 +161,12 @@ impl AtChops {
         let mut cipher = self
             .crypto_service
             .construct_aes_cipher(&decoded_symmetric_key, &iv)?;
+
+        let padded_data = Self::pkcs7_pad(data.as_bytes(), 16);
+
         let encrypted_data = self
             .crypto_service
-            .aes_encrypt(&mut *cipher, data.as_bytes())?;
+            .aes_encrypt(&mut *cipher, &padded_data)?;
         trace!("Encrypted data with shared sym key: {:x?}", encrypted_data);
         Ok(self.crypto_service.base64_encode(&encrypted_data))
     }
@@ -179,9 +188,36 @@ impl AtChops {
         let decrypted_data = self
             .crypto_service
             .aes_decrypt(&mut *cipher, &decoded_data)?;
-        trace!("Decrypted data with shared sym key: {:x?}", decrypted_data);
+        let unpadded_data = match Self::pkcs7_unpad(&decrypted_data) {
+            Ok(it) => it,
+            Err(err) => return Err(anyhow!(err)),
+        };
+        trace!("Decrypted data with shared sym key: {:x?}", unpadded_data);
         // TODO: Will probably want to return the binary data and convert to a String in the caller
-        Ok(String::from_utf8(decrypted_data)?)
+        Ok(String::from_utf8(unpadded_data)?)
+    }
+
+    fn pkcs7_pad(data: &[u8], block_size: usize) -> Vec<u8> {
+        let padding_len = block_size - (data.len() % block_size);
+        let mut padded_data = Vec::from(data);
+        padded_data.extend(vec![padding_len as u8; padding_len]);
+        padded_data
+    }
+
+    fn pkcs7_unpad(padded_data: &[u8]) -> std::result::Result<Vec<u8>, &'static str> {
+        if padded_data.is_empty() {
+            return Err("Data is empty");
+        }
+        let padding_len = *padded_data.last().unwrap() as usize;
+        if padding_len == 0 || padding_len > padded_data.len() {
+            return Err("Invalid padding");
+        }
+        for &byte in &padded_data[padded_data.len() - padding_len..] {
+            if byte as usize != padding_len {
+                return Err("Invalid padding");
+            }
+        }
+        Ok(padded_data[..padded_data.len() - padding_len].to_vec())
     }
 }
 

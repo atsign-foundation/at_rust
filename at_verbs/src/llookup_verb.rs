@@ -48,7 +48,7 @@ impl<'a> Verb<'a> for LlookupVerb {
     type Output = LlookupVerbOutput;
 
     fn execute(tls_client: &mut TlsClient, input: Self::Inputs) -> Result<Self::Output> {
-        let mut string_buf = String::from("lookup:");
+        let mut string_buf = String::from("llookup:");
         match input.return_type {
             LlookupReturnType::Data => {}
             LlookupReturnType::Meta => string_buf.push_str("meta:"),
@@ -72,11 +72,14 @@ impl<'a> Verb<'a> for LlookupVerb {
         };
 
         let formatted_at_key = format!(
-            "{is_cached}{visibility}{record_id}.{namespace}{owner}",
+            "{is_cached}{visibility}{record_id}{namespace}{owner}",
             is_cached = &is_cached,
             visibility = visibility,
             record_id = &input.at_key.record_id,
-            namespace = input.at_key.namespace.as_ref().unwrap_or(&String::from("")),
+            namespace = match input.at_key.namespace.as_ref() {
+                Some(namespace) => format!(".{}", namespace),
+                None => String::from(""),
+            },
             owner = &input.at_key.owner.get_at_sign_with_prefix()
         );
         string_buf.push_str(formatted_at_key.as_str());

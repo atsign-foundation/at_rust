@@ -32,14 +32,14 @@ pub struct UpdateVerbInputs<'a> {
     at_key: &'a AtKey,
 
     /// The value to be updated.
-    value: AtValue,
+    value: &'a AtValue,
 
     /// The options to be used for the update operation.
     update_options: Option<UpdateOptions>,
 }
 
 impl<'a> UpdateVerbInputs<'a> {
-    pub fn new(at_key: &'a AtKey, value: AtValue) -> Self {
+    pub fn new(at_key: &'a AtKey, value: &'a AtValue) -> Self {
         Self {
             at_key,
             value,
@@ -49,7 +49,7 @@ impl<'a> UpdateVerbInputs<'a> {
 
     pub fn new_with_options(
         at_key: &'a AtKey,
-        value: AtValue,
+        value: &'a AtValue,
         update_options: UpdateOptions,
     ) -> Self {
         Self {
@@ -73,26 +73,26 @@ impl<'a> Verb<'a> for UpdateVerb {
 
         if let Some(update_options) = input.update_options {
             if let Some(ttl) = update_options.ttl {
-                string_buf.push_str(format!("ttl:{},", ttl).as_str());
+                string_buf.push_str(format!("ttl:{}:", ttl).as_str());
             }
 
             if let Some(ttb) = update_options.ttb {
-                string_buf.push_str(format!("ttb:{},", ttb).as_str());
+                string_buf.push_str(format!("ttb:{}:", ttb).as_str());
             }
 
             if let Some(ttr) = update_options.ttr {
-                string_buf.push_str(format!("ttr:{},", ttr).as_str());
+                string_buf.push_str(format!("ttr:{}:", ttr).as_str());
             }
 
             if let Some(ccd) = update_options.ccd {
-                string_buf.push_str(format!("ccd:{},", ccd).as_str());
+                string_buf.push_str(format!("ccd:{}:", ccd).as_str());
             }
         }
 
         // Private and internal are not supported. Throw error?
         let visibility = match &input.at_key.visibility_scope {
             at_records::at_key::Visibility::Private => String::from(""),
-            at_records::at_key::Visibility::Internal => String::from(""),
+            at_records::at_key::Visibility::Internal => String::from("_"),
             at_records::at_key::Visibility::Public => String::from("public:"),
             at_records::at_key::Visibility::Shared(shared_with) => {
                 format!("{}:", shared_with.get_at_sign_with_prefix())
@@ -100,10 +100,13 @@ impl<'a> Verb<'a> for UpdateVerb {
         };
 
         let formatted_at_key = format!(
-            "{visibility}{record_id}.{namespace}{owner}",
+            "{visibility}{record_id}{namespace}{owner}",
             visibility = visibility,
             record_id = &input.at_key.record_id,
-            namespace = input.at_key.namespace.as_ref().unwrap_or(&String::from("")),
+            namespace = match input.at_key.namespace.as_ref() {
+                Some(namespace) => format!(".{}", namespace),
+                None => String::from(""),
+            },
             owner = &input.at_key.owner.get_at_sign_with_prefix()
         );
         string_buf.push_str(formatted_at_key.as_str());

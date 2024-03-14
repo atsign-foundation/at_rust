@@ -49,7 +49,7 @@ impl<'a> Verb<'a> for PlookupVerb {
     fn execute(tls_client: &mut TlsClient, input: Self::Inputs) -> Result<Self::Output> {
         // TODO: Implement bypassCache
 
-        let mut string_buf = String::from("lookup:");
+        let mut string_buf = String::from("plookup:");
         match input.return_type {
             PlookupReturnType::Data => {}
             PlookupReturnType::Meta => string_buf.push_str("meta:"),
@@ -57,9 +57,12 @@ impl<'a> Verb<'a> for PlookupVerb {
         }
 
         let formatted_at_key = format!(
-            "{record_id}.{namespace}{owner}",
+            "{record_id}{namespace}{owner}",
             record_id = &input.at_key.record_id,
-            namespace = input.at_key.namespace.as_ref().unwrap_or(&String::from("")),
+            namespace = match input.at_key.namespace.as_ref() {
+                Some(namespace) => format!(".{}", namespace),
+                None => String::from(""),
+            },
             owner = &input.at_key.owner.get_at_sign_with_prefix()
         );
         string_buf.push_str(formatted_at_key.as_str());

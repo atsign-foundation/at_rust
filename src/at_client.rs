@@ -1,5 +1,6 @@
 use anyhow::Result;
 use at_chops::{default_crypto_functions::DefaultCryptoFunctions, AtChops};
+use at_errors::AtError;
 use at_records::{
     at_key::{AtKey, Visibility},
     at_record::{AtRecord, AtValue},
@@ -10,9 +11,12 @@ use at_sign::AtSign;
 use at_tls::{at_server_addr::AtServerAddr, rustls_connection::RustlsConnection, TlsClient};
 use at_verbs::{
     from_verb::{FromVerb, FromVerbInputs},
+    llookup_verb::{LlookupReturnType, LlookupVerb, LlookupVerbInputs, LlookupVerbOutput},
     lookup_verb::{LookupReturnType, LookupVerb, LookupVerbInputs, LookupVerbOutput},
     pkam_verb::{PkamVerb, PkamVerbInputs},
+    plookup_verb::{PlookupReturnType, PlookupVerb, PlookupVerbInputs, PlookupVerbOutput},
     scan_verb::{ScanVerb, ScanVerbInputs},
+    update_verb::{UpdateOptions, UpdateVerb, UpdateVerbInputs},
     verb_trait::Verb,
 };
 use log::{debug, info};
@@ -126,7 +130,6 @@ impl AtClient {
                     owner: at_key.owner.clone(),
                     visibility_scope: Visibility::Shared(self.client_at_sign.clone()),
                 };
-
                 debug!("Created at_key for getting shared_key: {}", symm_key_at_key);
 
                 let symm_key_lookup_result =
@@ -153,6 +156,131 @@ impl AtClient {
                 }
             }
         }
+    }
+
+    /// Put or update the data for the given AtKey.
+    pub fn put_record(&mut self, at_key: &AtKey, data: &AtValue) -> Result<String> {
+        // 1. See if the we have already shared our symmetric key with the recipient of the data.
+        let symm_key_at_key = AtKey::new_private_key(
+            String::from("shared_key"),
+            match &at_key.visibility_scope {
+                Visibility::Shared(shared_with) => Some(shared_with.get_at_sign_without_prefix()),
+                _ => panic!("This should not happen"),
+            },
+            at_key.owner.clone(),
+        );
+
+        debug!(
+            "Created at_key for fetching potentially already created symm key: {}",
+            symm_key_at_key
+        );
+
+        let llookup_verb_args = LlookupVerbInputs::new(&symm_key_at_key, LlookupReturnType::Data);
+        let llokup_verb_result = LlookupVerb::execute(&mut self.tls_client, llookup_verb_args);
+
+        match llokup_verb_result {
+            Err(AtError::KeyNotFound) => {
+                info!("No shared key found. Creating a new one.");
+                // 2. If we have not shared the symmetric key, then we need to create it
+                let new_symm_key = self.at_chops.create_new_shared_symmetric_key()?;
+                // 3. If we have just created a new symmetric key, we should encrypt with "our" public key and save it for use later
+                info!("Encrypting and saving the new shared key.");
+                let encrypted_new_symm_key = self
+                    .at_chops
+                    .encrypt_data_with_our_public_key(&new_symm_key)?;
+                let encrypted_new_symm_key_value = AtValue::Text(encrypted_new_symm_key);
+                let update_verb_args =
+                    UpdateVerbInputs::new(&symm_key_at_key, &encrypted_new_symm_key_value);
+                let _ = UpdateVerb::execute(&mut self.tls_client, update_verb_args)?;
+                // 4. If we have just created a new symmetric key, we should encrypt with "their" public key and send it to them
+                info!("Looking up recipient's public key.");
+                let public_key_at_key = AtKey {
+                    record_id: String::from("publickey"),
+                    namespace: None,
+                    is_cached: false,
+                    owner: match &at_key.visibility_scope {
+                        Visibility::Shared(shared_with) => shared_with.clone(),
+                        _ => panic!("This should not happen."),
+                    },
+                    visibility_scope: Visibility::Public,
+                };
+                let plookup_verb_args =
+                    PlookupVerbInputs::new(&public_key_at_key, PlookupReturnType::Data);
+                let plookup_verb_result =
+                    PlookupVerb::execute(&mut self.tls_client, plookup_verb_args)?;
+                info!("Encrypting and sending the new shared key.");
+                let their_public_key = match plookup_verb_result {
+                    PlookupVerbOutput::Data(data) => match data {
+                        AtValue::Text(text) => text,
+                        _ => panic!("This should not happen."),
+                    },
+                    PlookupVerbOutput::Meta(_) => panic!("This should not happen."),
+                    PlookupVerbOutput::All(_) => panic!("This should not happen."),
+                };
+                let encrypted_new_symm_key = self
+                    .at_chops
+                    .encrypt_data_with_public_key(&their_public_key, &new_symm_key)?;
+                let encrypted_new_symm_key_value = AtValue::Text(encrypted_new_symm_key);
+                let shared_key_at_key = AtKey {
+                    record_id: String::from("shared_key"),
+                    namespace: None,
+                    is_cached: false,
+                    owner: at_key.owner.clone(),
+                    visibility_scope: Visibility::Shared(self.client_at_sign.clone()),
+                };
+                let update_verb_args = UpdateVerbInputs::new_with_options(
+                    &shared_key_at_key,
+                    &encrypted_new_symm_key_value,
+                    UpdateOptions::new(None, None, Some(86400), None),
+                );
+                let _ = UpdateVerb::execute(&mut self.tls_client, update_verb_args)?;
+                // 5. Encrypt the data with the symmetric key and send it to the server
+                match data {
+                    AtValue::Text(text) => {
+                        let encrypted_data = self
+                            .at_chops
+                            .encrypt_data_with_shared_symmetric_key(&new_symm_key, &text)?;
+                        let encrypted_data = AtValue::Text(encrypted_data);
+                        let update_verb_args = UpdateVerbInputs::new(at_key, &encrypted_data);
+                        let result = UpdateVerb::execute(&mut self.tls_client, update_verb_args)?;
+                        Ok(result)
+                    }
+                    AtValue::Binary(_) => todo!(),
+                }
+            }
+            Ok(LlookupVerbOutput::Data(symm_key)) => {
+                // 5. Encrypt the data with the symmetric key and send it to the server
+                info!("Already have symm key");
+                let encrypted_symm_key = match symm_key {
+                    AtValue::Text(text) => text,
+                    _ => panic!("Unexpected variant"),
+                };
+                let symm_key = self.at_chops.decrypt_symmetric_key(&encrypted_symm_key)?;
+                match data {
+                    AtValue::Text(text) => {
+                        let encrypted_data = self
+                            .at_chops
+                            .encrypt_data_with_shared_symmetric_key(&symm_key, &text)?;
+                        let encrypted_data = AtValue::Text(encrypted_data);
+                        let update_verb_args = UpdateVerbInputs::new(at_key, &encrypted_data);
+                        let result = UpdateVerb::execute(&mut self.tls_client, update_verb_args)?;
+                        Ok(result)
+                    }
+                    AtValue::Binary(_) => todo!(),
+                }
+            }
+            Ok(LlookupVerbOutput::All(_) | LlookupVerbOutput::Meta(_)) => {
+                panic!("Unexpected LlookupVerbOutput variant")
+            }
+            Err(error) => Err(error.into()),
+        }
+    }
+
+    pub fn put_metadata(&mut self, at_key: &AtKey, metadata: &RecordMetadata) -> Result<String> {
+        // let update_verb_args = UpdateVerbInputs::new(at_key, &AtValue::Metadata(metadata.clone()));
+        // let result = UpdateVerb::execute(&mut self.tls_client, update_verb_args)?;
+        // Ok(result)
+        todo!()
     }
 }
 
