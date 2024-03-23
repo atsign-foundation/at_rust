@@ -7,16 +7,14 @@ use at_secrets::AtSecrets;
 use at_sign::AtSign;
 use clap::Parser;
 
-// e.g. RUST_BACKTRACE=1 RUST_LOG=debug cargo run --example scan_example -- -f ~/.atsign/keys/@banana46_key.atKeys -a banana46
-
 #[derive(Parser, Debug)]
-#[command()]
+#[command(about = "Get the keys currently in the @sign's server.")]
 struct Cli {
-    /// The file path to process
+    /// The relative or absolute path to the file containing the AtSign's secrets.
     #[arg(short, long)]
     file: String,
 
-    /// The string argument to use
+    /// The name of the atSign to use (without the @ symbol).
     #[arg(short, long)]
     at_sign: String,
 }

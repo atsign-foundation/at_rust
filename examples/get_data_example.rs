@@ -8,20 +8,18 @@ use at_secrets::AtSecrets;
 use at_sign::AtSign;
 use clap::Parser;
 
-// e.g. RUST_BACKTRACE=1 RUST_LOG=debug cargo run --example get_data_example -- --file ~/.atsign/keys/@42territorial_key.atKeys --at-sign 42territorial --at-key @virgogigantic64:demo.test@42territorial
-
 #[derive(Parser, Debug)]
-#[command()]
+#[command(about = "Get data from the @sign's server.")]
 struct Cli {
-    /// The file path to process
+    /// The relative or absolute path to the file containing the AtSign's secrets.
     #[arg(short, long)]
     file: String,
 
-    /// The string argument to use
+    /// The name of the atSign to use (without the @ symbol).
     #[arg(short, long)]
     at_sign: String,
 
-    /// String representation of at_key to get the data of
+    /// String representation of the AtKey e.g. @<shared_with>:<record_id>.<namespace>@<owner>.
     #[arg(long)]
     at_key: String,
 }
