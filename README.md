@@ -13,6 +13,10 @@ The following need to be installed:
 - `rust` - [Installation instructions](https://doc.rust-lang.org/book/ch01-01-installation.html)
 - `pkg-config`
 
+## Tests
+Run `cargo test --workspace` to run all tests in the different workspaces.
+Add `-- --nocapture` to see the logs during the tests.
+Run `cargo test -p <workspace_name>` to run tests for a specific workspace.
 
 ## Run examples
 Prefix all commands with `RUST_LOG=info` (or `debug` or `trace`) to see logs.
