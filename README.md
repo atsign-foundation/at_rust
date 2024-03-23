@@ -38,7 +38,7 @@ This repo is broken down into workspaces to help with organization and separatio
 - `at_errors` - Contains the error types that the library can return including associated functions for creating them.
 - `at_records` - Contains the `AtRecord` struct which is used to store the data that is sent and received.
 - `at_secrets` - Contains the `AtSecrets` struct which is used to store the secrets required by the `AtClient` as well as associated functions for creating them from a file.
-- `at_sign` - Contains the `AtSign` struct which is used to store the atSign of the client.
+- `at_sign` - Contains the `AtSign` struct which is used for working with AtSigns.
 - `at_tls` - Contains the `TlsClient` struct which is used to establish a TLS connection with the atServer and send and receive data.
   - `lib.rs` - Contains the `TlsClient` struct and methods for TLS related operations.
   - `tls_connection_trait.rs` - A trait which defines the signature for creating a connection.
