@@ -39,23 +39,23 @@ impl AtSecrets {
         // Get the keys
         let aes_pkam_public_key = v["aesPkamPublicKey"]
             .as_str()
-            .ok_or_else(|| "Unable to find aesPkamPublicKey")?
+            .ok_or("Unable to find aesPkamPublicKey")?
             .to_owned();
         let aes_pkam_private_key = v["aesPkamPrivateKey"]
             .as_str()
-            .ok_or_else(|| "Unable to find aesPkamPrivateKey")?
+            .ok_or("Unable to find aesPkamPrivateKey")?
             .to_owned();
         let aes_encrypt_public_key = v["aesEncryptPublicKey"]
             .as_str()
-            .ok_or_else(|| "Unable to find aesEncryptPublicKey")?
+            .ok_or("Unable to find aesEncryptPublicKey")?
             .to_owned();
         let aes_encrypt_private_key = v["aesEncryptPrivateKey"]
             .as_str()
-            .ok_or_else(|| "Unable to find aesEncryptPrivateKey")?
+            .ok_or("Unable to find aesEncryptPrivateKey")?
             .to_owned();
         let aes_self_encrypt_key = v["selfEncryptionKey"]
             .as_str()
-            .ok_or_else(|| "Unable to find selfEncryptionKey")?
+            .ok_or("Unable to find selfEncryptionKey")?
             .to_owned();
 
         Ok(AtSecrets::new(

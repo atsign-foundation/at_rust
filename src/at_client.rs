@@ -239,7 +239,7 @@ impl AtClient {
                     AtValue::Text(text) => {
                         let encrypted_data = self
                             .at_chops
-                            .encrypt_data_with_shared_symmetric_key(&new_symm_key, &text)?;
+                            .encrypt_data_with_shared_symmetric_key(&new_symm_key, text)?;
                         let encrypted_data = AtValue::Text(encrypted_data);
                         let update_verb_args = UpdateVerbInputs::new(at_key, &encrypted_data);
                         let result = UpdateVerb::execute(&mut self.tls_client, update_verb_args)?;
@@ -260,7 +260,7 @@ impl AtClient {
                     AtValue::Text(text) => {
                         let encrypted_data = self
                             .at_chops
-                            .encrypt_data_with_shared_symmetric_key(&symm_key, &text)?;
+                            .encrypt_data_with_shared_symmetric_key(&symm_key, text)?;
                         let encrypted_data = AtValue::Text(encrypted_data);
                         let update_verb_args = UpdateVerbInputs::new(at_key, &encrypted_data);
                         let result = UpdateVerb::execute(&mut self.tls_client, update_verb_args)?;
@@ -276,7 +276,7 @@ impl AtClient {
         }
     }
 
-    pub fn put_metadata(&mut self, at_key: &AtKey, metadata: &RecordMetadata) -> Result<String> {
+    pub fn put_metadata(&mut self, _at_key: &AtKey, _metadata: &RecordMetadata) -> Result<String> {
         // let update_verb_args = UpdateVerbInputs::new(at_key, &AtValue::Metadata(metadata.clone()));
         // let result = UpdateVerb::execute(&mut self.tls_client, update_verb_args)?;
         // Ok(result)

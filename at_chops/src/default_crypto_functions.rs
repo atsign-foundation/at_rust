@@ -21,6 +21,12 @@ impl DefaultCryptoFunctions {
     }
 }
 
+impl Default for DefaultCryptoFunctions {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl CryptoFunctions for DefaultCryptoFunctions {
     // ----- Base64 -----
     fn base64_encode(&self, data: &[u8]) -> String {
@@ -33,13 +39,13 @@ impl CryptoFunctions for DefaultCryptoFunctions {
 
     // ----- RSA -----
     fn construct_rsa_private_key(&self, key: &[u8]) -> Result<RsaPrivateKey> {
-        let rsa_private_key = RsaPrivateKey::from_pkcs8_der(key.as_ref())?;
+        let rsa_private_key = RsaPrivateKey::from_pkcs8_der(key)?;
         rsa_private_key.validate()?;
         Ok(rsa_private_key)
     }
 
     fn construct_rsa_public_key(&self, key: &[u8]) -> Result<RsaPublicKey> {
-        let rsa_public_key = RsaPublicKey::from_public_key_der(key.as_ref())?;
+        let rsa_public_key = RsaPublicKey::from_public_key_der(key)?;
         Ok(rsa_public_key)
     }
 
@@ -80,7 +86,7 @@ impl CryptoFunctions for DefaultCryptoFunctions {
 
     // ----- AES -----
     fn construct_aes_cipher(&self, key: &[u8], iv: &[u8; 16]) -> Result<Box<dyn StreamCipher>> {
-        let key = GenericArray::from_slice(key.as_ref());
+        let key = GenericArray::from_slice(key);
         let nonce = GenericArray::from_slice(iv);
         let cipher = Ctr128BE::<Aes256>::new(key, nonce);
         Ok(Box::new(cipher))

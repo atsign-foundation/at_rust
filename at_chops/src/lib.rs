@@ -15,8 +15,6 @@ pub struct AtChops {
     rsa_public_key: RsaPublicKey,
     /// Used for authenticating with AtServer by signing challenges.
     pkam_private_key: RsaPrivateKey,
-    /// Pretty sure this is never used.
-    pkam_public_key: RsaPublicKey,
     //? Need to check that some of the functions should return String::from_utf8() instead of String created from base64encode
     //? In the future it probably makes sense to get rid of public keys entirely as the private keys are enough to derive them
 }
@@ -29,7 +27,7 @@ impl AtChops {
         encoded_and_encrypted_pkam_private_key: &str,
     ) -> Result<Self> {
         let decrypted_private_key = Self::decrypt_private_key(
-            &crypto_service,
+            crypto_service.as_ref(),
             encoded_and_encrypted_private_key,
             encoded_self_encryption_key,
         )?;
@@ -40,7 +38,7 @@ impl AtChops {
         let rsa_private_key = crypto_service.construct_rsa_private_key(&decrypted_private_key)?;
         let rsa_public_key = rsa_private_key.to_public_key();
         let decrypted_pkam_private_key = Self::decrypt_private_key(
-            &crypto_service,
+            crypto_service.as_ref(),
             encoded_and_encrypted_pkam_private_key,
             encoded_self_encryption_key,
         )?;
@@ -50,14 +48,12 @@ impl AtChops {
         );
         let pkam_private_key =
             crypto_service.construct_rsa_private_key(&decrypted_pkam_private_key)?;
-        let pkam_public_key = pkam_private_key.to_public_key();
         debug!("AtChops initialized");
         Ok(Self {
             crypto_service,
             rsa_private_key,
             rsa_public_key,
             pkam_private_key,
-            pkam_public_key,
         })
     }
 
@@ -65,7 +61,7 @@ impl AtChops {
 
     /// Helper method to decrypt the private key using the self encryption key.
     fn decrypt_private_key(
-        crypto_service: &Box<dyn CryptoFunctions>,
+        crypto_service: &dyn CryptoFunctions,
         encoded_and_encrypted_private_key: &str,
         encoded_self_encryption_key: &str,
     ) -> Result<Vec<u8>> {
@@ -83,7 +79,7 @@ impl AtChops {
         };
         //? The key was originally a string?
         let string_result = String::from_utf8(unpadded_data)?;
-        let result = crypto_service.base64_decode(&string_result.as_bytes())?;
+        let result = crypto_service.base64_decode(string_result.as_bytes())?;
         Ok(result)
     }
 

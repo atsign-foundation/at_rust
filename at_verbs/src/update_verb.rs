@@ -113,7 +113,7 @@ impl<'a> Verb<'a> for UpdateVerb {
 
         let value = match input.value {
             AtValue::Text(text) => text,
-            AtValue::Binary(data) => todo!(),
+            AtValue::Binary(_) => todo!(),
         };
 
         string_buf.push_str(format!(" {}", value).as_str());

@@ -24,7 +24,7 @@ pub trait Verb<'a> {
         // Check that it doesn't contain error codes
         if response.starts_with("error") {
             let code = response
-                .split_once(":")
+                .split_once(':')
                 .ok_or(AtError::UnknownAtClientException(String::from(
                     "Unexpected formatting of error message from server",
                 )))?

@@ -18,5 +18,5 @@ mod prelude {
     pub use crate::verb_trait::Verb;
     pub use at_errors::{AtError, Result};
     pub use at_tls::TlsClient;
-    pub use log::{debug, error, info};
+    pub use log::{debug, error};
 }

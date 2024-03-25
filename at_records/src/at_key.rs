@@ -161,7 +161,7 @@ impl Display for AtKey {
                 buffer.push_str("private:");
             }
             Visibility::Internal => {
-                buffer.push_str("_");
+                buffer.push('_');
             }
             Visibility::Shared(shared_with) => {
                 buffer.push_str(&format!("{}:", shared_with.get_at_sign_with_prefix()));

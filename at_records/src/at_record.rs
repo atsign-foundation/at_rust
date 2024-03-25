@@ -1,3 +1,6 @@
+#![allow(unused_variables)]
+#![allow(dead_code)]
+
 use at_chops::AtChops;
 
 use crate::{at_key::AtKey, record_metadata::RecordMetadata};

@@ -1,3 +1,6 @@
+#![allow(unused_variables)]
+#![allow(dead_code)]
+
 #[derive(Debug)]
 pub struct RecordMetadata {
     /// A Date and Time derived from the ttb (now + ttb). A Key should be only available after availableFrom.
