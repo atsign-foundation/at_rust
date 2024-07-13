@@ -1,0 +1,12 @@
+[package]
+name = "at_records"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+at_chops = { path = "../at_chops" }
+at_sign = { path = "../at_sign" }
+log = "0.4.20"
+regex = "1.10.3"
